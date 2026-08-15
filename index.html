@@ -137,7 +137,8 @@ nav a:hover::after{transform:scaleX(1)}
 @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
 /* ================= MACHINE ================= */
-.machine{margin-top:46px;border:1.5px solid var(--ink);position:relative;background:rgba(255,255,255,.16)}
+.machine{margin-top:46px;border:1.5px solid var(--ink);position:relative;background:rgba(255,255,255,.16);
+  contain:layout}
 .machine::after{content:"";position:absolute;inset:6px;border:1px solid var(--rule);pointer-events:none}
 .mhead{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
   padding:12px 20px;border-bottom:1.5px solid var(--ink)}
@@ -252,7 +253,7 @@ nav a:hover::after{transform:scaleX(1)}
 body.noisy .grain{animation-duration:.26s}
 body.noisy .grain2{animation-duration:.9s}
 body.noisy .scan{animation-duration:3s}
-body.noisy .machine,body.noisy .noisebox{animation:panelbuzz .18s steps(2,end) infinite}
+body.noisy .noisebox{animation:panelbuzz .18s steps(2,end) infinite}
 @keyframes panelbuzz{0%{transform:translate(0,0)}50%{transform:translate(.6px,-.4px)}100%{transform:translate(-.5px,.5px)}}
 
 /* ---------- машинописный оттиск ---------- */
@@ -327,7 +328,7 @@ body.noisy .machine,body.noisy .noisebox{animation:panelbuzz .18s steps(2,end) i
 .vmute{font-family:"Cousine","Courier New",Courier,monospace;font-size:8px;letter-spacing:.1em;border:1px solid var(--rule);
   background:none;color:var(--ink-faint);padding:8px 0;cursor:crosshair}
 .vmute.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.steps{display:grid;grid-template-columns:repeat(16,1fr);gap:4px}
+.steps{display:grid;grid-template-columns:repeat(16,1fr);gap:4px;contain:layout}
 .st{aspect-ratio:1;border:1px solid var(--rule);background:none;cursor:crosshair;position:relative;
   touch-action:none;-webkit-user-select:none;user-select:none;
   transition:transform .07s,background .1s;padding:0}
@@ -342,10 +343,8 @@ body.noisy .machine,body.noisy .noisebox{animation:panelbuzz .18s steps(2,end) i
   font-family:"Cousine",monospace;font-size:10px;font-weight:700;letter-spacing:.06em;
   padding:3px 6px;transform:translate(-50%,-140%);opacity:0;transition:opacity .1s}
 .velbadge.show{opacity:1}
-.st.now{transform:scale(1.16)}
+.st.now{transform:scale(1.12);z-index:2}
 .st.now::before{content:"";position:absolute;inset:-4px;border:1px solid var(--ink)}
-.st.fire{animation:fire .22s ease-out}
-@keyframes fire{0%{transform:scale(1.5)}100%{transform:scale(1)}}
 .sruler{display:grid;grid-template-columns:112px 28px 50px 1fr;gap:8px;min-width:660px}
 .sruler .steps span{font-family:"Cousine","Courier New",Courier,monospace;font-size:8px;letter-spacing:.06em;
   color:var(--ink-faint);text-align:center}
@@ -1321,7 +1320,9 @@ function applyNoise(){
 /* тряска: раз в кадр смещаем заголовки и таблички, амплитуда ∝ ШУМ */
 let shakeEls=[];
 function collectShake(){
-  shakeEls=[...document.querySelectorAll('h2,.hero h1,.hero .sub,.plate,nav .brand,.counter small,.lbl')].slice(0,40);
+  // только заголовки и подписи вне приборов: внутри панелей от дрожи всё плывёт
+  shakeEls=[...document.querySelectorAll('h2,.hero h1,nav .brand,section > .wrap > .lbl')]
+    .filter(el=>!el.closest('.machine,.noisebox')).slice(0,24);
 }
 function shake(){
   const n=N.noise;
@@ -2726,7 +2727,11 @@ function paintHead(){
     stepCells[s].forEach(e=>{
       e.classList.add('now');
       const arr=pattern[e.dataset.v];
-      if(arr&&arr[s]){e.classList.remove('fire');void e.offsetWidth;e.classList.add('fire')}
+      // вспышка через Web Animations: без чтения offsetWidth, а значит без
+      // синхронного пересчёта вёрстки на каждом шаге — от него и была тряска
+      if(arr&&arr[s]&&e.animate)
+        e.animate([{transform:'scale(1.45)'},{transform:'scale(1)'}],
+                  {duration:200,easing:'ease-out'});
     });
     headStep=s;
     lamp('lp-beat',s%4===0);
