@@ -1,0 +1,2758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ЧЁРНЫЙ ШУМ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cousine:wght@400;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --n:0;              /* глобальный уровень ШУМА, 0..1 */
+  --paper:#e2ded8;
+  --paper-2:#d8d4cd;
+  --ink:#141312;
+  --ink-soft:rgba(20,19,18,.62);
+  --ink-faint:rgba(20,19,18,.30);
+  --rule:rgba(20,19,18,.22);
+  --track:.16em;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:"Cousine","Courier Prime","Courier New",Courier,monospace;
+  font-size:17px;-webkit-font-smoothing:antialiased;overflow-x:hidden;cursor:crosshair;
+}
+::selection{background:var(--ink);color:var(--paper)}
+h2,.hero h1,.hero .sub,.tracks .t,.counter span{font-family:"Cousine","Courier Prime","Courier New",monospace;font-weight:700}
+
+/* ---------- paper + grain (layered: fine / coarse / dust / blotch) ---------- */
+.grain,.grain2,.vign{position:fixed;inset:-60%;pointer-events:none;z-index:900}
+.grain{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='2.2' intercept='-.35'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:calc(.66 + var(--n)*.34);mix-blend-mode:multiply;animation:grainshift .5s steps(2,end) infinite;
+}
+.grain2{
+  z-index:896;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.32' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='1.5' intercept='-.25'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23m)'/%3E%3C/svg%3E");
+  background-size:520px 520px;opacity:calc(.30 + var(--n)*.55);mix-blend-mode:multiply;
+  animation:grainshift2 1.9s steps(3,end) infinite;
+}
+@keyframes grainshift{0%{transform:translate(0,0)}20%{transform:translate(-2%,1%)}40%{transform:translate(1%,-2%)}
+  60%{transform:translate(-1.5%,-1%)}80%{transform:translate(2%,1.5%)}100%{transform:translate(-1%,2%)}}
+@keyframes grainshift2{0%{transform:translate(0,0) scale(1)}33%{transform:translate(1.5%,-1%) scale(1.02)}
+  66%{transform:translate(-1%,1.5%) scale(1)}100%{transform:translate(.5%,.5%) scale(1.01)}}
+.blotch{position:fixed;inset:0;z-index:895;pointer-events:none;mix-blend-mode:multiply;opacity:calc(.44 + var(--n)*.4);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='700'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.008' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='.55' intercept='-.05'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='700' height='700' filter='url(%23b)'/%3E%3C/svg%3E");
+  background-size:1100px 1100px}
+.dust{position:fixed;inset:0;z-index:897;pointer-events:none;mix-blend-mode:multiply;opacity:calc(.62 + var(--n)*.38);
+  background-repeat:repeat;animation:dustdrift 3.6s steps(4,end) infinite}
+@keyframes dustdrift{0%{background-position:0 0}25%{background-position:-3px 2px}
+  50%{background-position:2px -3px}75%{background-position:-2px -1px}100%{background-position:1px 3px}}
+.vign{inset:0;z-index:899;mix-blend-mode:multiply;
+  background:
+    radial-gradient(ellipse 78% 74% at 50% 46%,
+      transparent calc(30% - var(--n)*16%),
+      rgba(20,19,18,calc(.10 + var(--n)*.14)) 68%,
+      rgba(20,19,18,calc(.30 + var(--n)*.34)) 100%),
+    linear-gradient(180deg,rgba(20,19,18,.13),transparent 14%,transparent 88%,rgba(20,19,18,.15)),
+    linear-gradient(90deg,rgba(20,19,18,.11),transparent 9%,transparent 91%,rgba(20,19,18,.11))}
+.fibres{position:fixed;inset:0;z-index:898;pointer-events:none;mix-blend-mode:multiply;opacity:.65;
+  background-image:
+    radial-gradient(circle at 12% 30%,rgba(20,19,18,.6) 0 .7px,transparent 1.2px),
+    radial-gradient(circle at 71% 12%,rgba(20,19,18,.5) 0 .8px,transparent 1.3px),
+    radial-gradient(circle at 44% 78%,rgba(20,19,18,.55) 0 .6px,transparent 1.1px),
+    radial-gradient(circle at 88% 61%,rgba(20,19,18,.5) 0 .9px,transparent 1.4px),
+    radial-gradient(circle at 30% 55%,rgba(20,19,18,.45) 0 .6px,transparent 1.1px);
+  background-size:340px 290px,210px 260px,410px 330px,270px 380px,160px 200px}
+/* ---------- курсор: графитовый след и прицел ---------- */
+#trail{position:fixed;inset:0;z-index:893;pointer-events:none;mix-blend-mode:multiply;opacity:.9}
+#retic{position:fixed;left:0;top:0;z-index:941;pointer-events:none;width:34px;height:34px;
+  margin:-17px 0 0 -17px;opacity:0;transition:opacity .25s}
+#retic.on{opacity:.75}
+#retic.press{opacity:1}
+#retic svg{width:100%;height:100%;display:block}
+#retic .ring{transform-origin:50% 50%;transition:transform .12s}
+#retic.press .ring{transform:scale(.72)}
+body.touch #retic,body.touch #trail{display:none}
+
+.scan{position:fixed;inset:0;z-index:894;pointer-events:none;mix-blend-mode:multiply;opacity:calc(.24 + var(--n)*.66);
+  background:repeating-linear-gradient(0deg,rgba(20,19,18,.14) 0 1px,transparent 1px 4px);
+  animation:roll 9s linear infinite}
+@keyframes roll{to{background-position:0 400px}}
+
+/* ---------- smudges ---------- */
+.smudge{position:absolute;pointer-events:none;mix-blend-mode:multiply;z-index:0;filter:url(#rough) blur(4px)}
+.smudge i{display:block;width:100%;height:100%;
+  background:radial-gradient(ellipse 60% 50% at 50% 50%,rgba(28,26,24,.62),rgba(28,26,24,.28) 55%,transparent 74%)}
+.print{position:absolute;pointer-events:none;mix-blend-mode:multiply;z-index:0;opacity:.55;filter:url(#rough) blur(1.2px)}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1240px;margin:0 auto;padding:0 28px;position:relative;z-index:5}
+section{position:relative;padding:96px 0;border-top:1px solid var(--rule)}
+.mono,.lbl{font-family:"Cousine","Courier New",Courier,monospace;font-size:10px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase}
+.lbl{color:var(--ink-soft)}
+h2{font-size:clamp(30px,5.6vw,68px);font-weight:700;letter-spacing:0;line-height:.95;
+  text-transform:uppercase;position:relative;display:inline-block}
+.op{position:relative;display:inline-block}
+.op::before,.op::after{content:attr(data-t);position:absolute;left:0;top:0;white-space:nowrap;
+  pointer-events:none;mix-blend-mode:multiply}
+.op::before{transform:translate(-3px,1px) scaleX(1.012);opacity:.42;letter-spacing:.052em}
+.op::after{transform:translate(4px,-2px);opacity:.30;letter-spacing:.028em}
+
+/* ---------- nav ---------- */
+nav{position:fixed;top:0;left:0;right:0;z-index:800;mix-blend-mode:multiply;padding:16px 28px;
+  display:flex;justify-content:space-between;align-items:baseline;gap:20px;
+  background:linear-gradient(var(--paper) 55%,transparent)}
+nav .brand{font-weight:700;letter-spacing:.22em;font-size:12px;font-family:"Cousine","Courier New",Courier,monospace}
+nav ul{display:flex;gap:22px;list-style:none;flex-wrap:wrap}
+nav a{color:var(--ink-soft);text-decoration:none;transition:color .15s}
+nav a:hover{color:var(--ink)}
+nav a::after{content:"";display:block;height:1px;background:var(--ink);transform:scaleX(0);transition:transform .2s;transform-origin:0}
+nav a:hover::after{transform:scaleX(1)}
+
+/* ---------- hero ---------- */
+.hero{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:120px 0 60px;overflow:hidden;border:0}
+.hero h1{font-size:clamp(38px,10.5vw,150px);font-weight:700;line-height:.9;letter-spacing:-.02em;
+  text-transform:uppercase;position:relative;z-index:6}
+.hero .sub{margin-top:10px;font-size:clamp(15px,2.9vw,34px);font-weight:700;letter-spacing:var(--track);
+  text-transform:uppercase;position:relative;z-index:6}
+.hero .meta{margin-top:44px;display:flex;flex-wrap:wrap;gap:14px 40px;position:relative;z-index:6}
+.hero .meta div{max-width:230px;line-height:1.6}
+.tally{position:absolute;right:2%;top:14%;display:flex;flex-direction:column;gap:9px;z-index:4;opacity:.75}
+.tally span{display:block;width:34px;height:1.5px;background:var(--ink);transform-origin:0}
+.scroll{position:absolute;bottom:26px;left:28px;z-index:6;display:flex;align-items:center;gap:10px}
+.scroll b{display:block;width:60px;height:1px;background:var(--ink);animation:pull 2.4s ease-in-out infinite}
+@keyframes pull{0%,100%{transform:scaleX(.2);transform-origin:0}50%{transform:scaleX(1);transform-origin:0}}
+
+/* ---------- ticker ---------- */
+.ticker{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);overflow:hidden;
+  padding:12px 0;white-space:nowrap;position:relative;z-index:5}
+.ticker div{display:inline-block;animation:slide 34s linear infinite}
+.ticker span{padding:0 26px;letter-spacing:.28em;font-size:11px;font-family:"Cousine","Courier New",Courier,monospace;
+  font-weight:500;text-transform:uppercase;color:var(--ink-soft)}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ================= MACHINE ================= */
+.machine{margin-top:46px;border:1.5px solid var(--ink);position:relative;background:rgba(255,255,255,.16)}
+.machine::after{content:"";position:absolute;inset:6px;border:1px solid var(--rule);pointer-events:none}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:12px 20px;border-bottom:1.5px solid var(--ink)}
+.mhead .plate{font-family:"Cousine","Courier New",Courier,monospace;font-weight:700;font-size:11px;letter-spacing:.3em}
+.lamps{display:flex;gap:14px;align-items:center}
+.lamp{display:flex;align-items:center;gap:7px;font-family:"Cousine","Courier New",Courier,monospace;font-size:9px;
+  letter-spacing:.18em;color:var(--ink-faint)}
+.lamp i{width:9px;height:9px;border:1px solid var(--ink);border-radius:50%;background:transparent;transition:background .12s}
+.lamp.on{color:var(--ink)}
+.lamp.on i{background:var(--ink);box-shadow:0 0 0 3px rgba(20,19,18,.16)}
+.lamp.blink i{animation:blink 1.1s steps(2,end) infinite}
+@keyframes blink{50%{background:transparent;box-shadow:none}}
+
+.mgrid{display:grid;grid-template-columns:1.05fr .95fr;gap:0}
+.mcol{padding:22px 24px}
+.mcol+.mcol{border-left:1.5px solid var(--ink)}
+
+/* reels */
+.transport{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;margin-bottom:18px}
+.reel{width:100%;max-width:150px;aspect-ratio:1;justify-self:center}
+.reel svg{width:100%;height:100%;display:block}
+.reel{cursor:grab;touch-action:none}
+.reel.hold{cursor:grabbing}
+.reel.hold svg{filter:url(#rough2)}
+.reel .spin{transform-origin:50% 50%;will-change:transform}
+@keyframes rot{to{transform:rotate(360deg)}}
+.counter{font-family:"Cousine","Courier New",Courier,monospace;font-weight:700;font-size:20px;letter-spacing:.14em;
+  border:1px solid var(--ink);padding:8px 12px;background:var(--paper-2);text-align:center}
+.counter small{display:block;font-size:8px;letter-spacing:.2em;color:var(--ink-soft);font-weight:600;margin-top:3px}
+
+/* VU */
+.vus{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.vu{border:1px solid var(--ink);background:var(--paper-2);padding:6px}
+.vu canvas{width:100%;height:96px;display:block;mix-blend-mode:multiply}
+.vu .cap{font-family:"Cousine","Courier New",Courier,monospace;font-size:8px;letter-spacing:.2em;text-align:center;
+  color:var(--ink-soft);padding-top:2px}
+
+/* scope */
+.scope{border:1px solid var(--ink);background:var(--paper-2);margin-top:16px;position:relative;overflow:hidden}
+.scope canvas{width:100%;height:130px;display:block;mix-blend-mode:multiply}
+.scope .tag{position:absolute;top:6px;left:8px;font-family:"Cousine","Courier New",Courier,monospace;font-size:8px;
+  letter-spacing:.2em;color:var(--ink-soft)}
+.scope .sw{position:absolute;top:4px;right:6px;display:flex;gap:4px}
+.scope .sw button{font-family:"Cousine","Courier New",Courier,monospace;font-size:8px;letter-spacing:.16em;padding:3px 7px;
+  border:1px solid var(--rule);background:none;color:var(--ink-soft);cursor:crosshair}
+.scope .sw button.act{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* knobs */
+.knobs{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:18px 10px;margin-top:20px}
+.knob{text-align:center;user-select:none;position:relative}
+.knob svg{width:82px;height:82px;display:block;margin:0 auto;touch-action:none;cursor:grab;outline:none;
+  transition:transform .12s ease,filter .12s ease}
+.knob svg:focus-visible{filter:drop-shadow(0 0 0 var(--ink))}
+.knob svg:focus-visible .bezel{stroke-width:2.6}
+.knob.drag svg{cursor:grabbing;transform:scale(1.04)}
+.knob .body{transform-origin:50% 50%}
+.knob .arc{stroke:var(--ink);stroke-width:3.4;fill:none;stroke-linecap:butt;opacity:.9}
+.knob .name{font-family:"Cousine","Courier New",Courier,monospace;font-size:9px;letter-spacing:.18em;margin-top:6px}
+.knob .val{font-family:"Cousine","Courier New",Courier,monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-faint);
+  transition:color .12s}
+.knob.drag .val{color:var(--ink)}
+.knob .bubble{position:absolute;left:50%;top:-10px;transform:translate(-50%,-4px);opacity:0;pointer-events:none;
+  background:var(--ink);color:var(--paper);font-family:"Cousine","Courier New",Courier,monospace;font-size:9px;font-weight:600;
+  letter-spacing:.14em;padding:5px 8px;white-space:nowrap;transition:opacity .12s,transform .12s;z-index:20}
+.knob.drag .bubble{opacity:1;transform:translate(-50%,-10px)}
+.knob .mode{font-family:"Cousine","Courier New",Courier,monospace;font-size:8px;letter-spacing:.14em;color:var(--ink-faint);
+  height:10px;opacity:0;transition:opacity .12s}
+.knob.drag .mode{opacity:1}
+
+/* faders + switches */
+.strip{display:grid;grid-template-columns:1fr auto;gap:20px;margin-top:22px;align-items:end}
+.fader{display:flex;flex-direction:column;gap:8px}
+.fader input{-webkit-appearance:none;appearance:none;width:100%;height:24px;background:none;cursor:crosshair}
+.fader input::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
+.fader input::-moz-range-track{height:2px;background:var(--ink)}
+.fader input::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:26px;background:var(--paper);
+  border:1.5px solid var(--ink);margin-top:-12px;box-shadow:2px 2px 0 rgba(20,19,18,.35)}
+.fader input::-moz-range-thumb{width:14px;height:26px;background:var(--paper);border:1.5px solid var(--ink);border-radius:0}
+.switches{display:flex;gap:10px;flex-wrap:wrap}
+.sw2{font-family:"Cousine","Courier New",Courier,monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  border:1px solid var(--ink);background:none;color:var(--ink);padding:9px 12px;cursor:crosshair;
+  display:flex;align-items:center;gap:8px;transition:.14s}
+.sw2 u{width:8px;height:14px;border:1px solid var(--ink);display:block;position:relative;text-decoration:none}
+.sw2 u::after{content:"";position:absolute;left:0;right:0;top:0;height:50%;background:var(--ink);transition:.14s}
+.sw2.on u::after{top:50%}
+.sw2.on{background:var(--ink);color:var(--paper)}
+.sw2.on u{border-color:var(--paper)}
+.sw2.on u::after{background:var(--paper)}
+
+/* transport buttons */
+.tbtns{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.tbtn{font-family:"Cousine","Courier New",Courier,monospace;font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  background:none;border:1.5px solid var(--ink);color:var(--ink);padding:12px 18px;cursor:crosshair;
+  position:relative;transition:.12s;box-shadow:3px 3px 0 rgba(20,19,18,.28)}
+.tbtn:hover{background:var(--ink);color:var(--paper)}
+.tbtn:active,.tbtn.act{transform:translate(3px,3px);box-shadow:none;background:var(--ink);color:var(--paper)}
+
+/* tracklist */
+.tracks{list-style:none;margin-top:8px}
+.tracks li{display:grid;grid-template-columns:38px 1fr auto auto;gap:14px;align-items:center;
+  padding:12px 6px;border-bottom:1px solid var(--rule);cursor:pointer;transition:background .15s,padding .2s}
+.tracks li:hover{background:rgba(20,19,18,.055);padding-left:14px}
+.tracks li.on{background:var(--ink);color:var(--paper)}
+.tracks li.on .n,.tracks li.on .d,.tracks li.on .tag{color:rgba(226,222,216,.72)}
+.tracks .n{font-family:"Cousine","Courier New",Courier,monospace;font-size:10px;letter-spacing:.14em;color:var(--ink-faint)}
+.tracks .t{font-size:16px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.tracks .tag,.tracks .d{font-family:"Cousine","Courier New",Courier,monospace;font-size:9px;letter-spacing:.14em;color:var(--ink-soft)}
+.tracks li .bar{grid-column:1/-1;height:2px;background:rgba(226,222,216,.3);position:relative;display:none}
+.tracks li.on .bar{display:block}
+.tracks li .bar b{position:absolute;inset:0 100% 0 0;background:var(--paper)}
+
+body.noisy .grain{animation-duration:.26s}
+body.noisy .grain2{animation-duration:.9s}
+body.noisy .scan{animation-duration:3s}
+body.noisy .machine,body.noisy .noisebox{animation:panelbuzz .18s steps(2,end) infinite}
+@keyframes panelbuzz{0%{transform:translate(0,0)}50%{transform:translate(.6px,-.4px)}100%{transform:translate(-.5px,.5px)}}
+
+/* ---------- машинописный оттиск ---------- */
+.ink{display:inline-block;will-change:transform}
+.ink.faint{opacity:.55}
+.ink.heavy{text-shadow:.4px .4px 0 currentColor}
+
+/* ---------- глобальная ручка ШУМ ---------- */
+.noisebox{position:fixed;right:18px;bottom:18px;z-index:850;background:var(--paper);
+  border:1.5px solid var(--ink);padding:10px 12px 8px;box-shadow:4px 4px 0 rgba(20,19,18,.35);
+  display:flex;flex-direction:column;align-items:center;gap:2px}
+.noisebox .cap{font-family:"Cousine","Courier New",monospace;font-size:8px;letter-spacing:.18em;
+  color:var(--ink-soft);text-align:center;line-height:1.5}
+.noisebox .knobs{margin:0;grid-template-columns:1fr;gap:0}
+.noisebox canvas{width:78px;height:20px;display:block;margin-bottom:4px;mix-blend-mode:multiply}
+.noisebox .knob svg{width:66px;height:66px}
+.knob.lock{opacity:.42}
+.knob.lock svg{pointer-events:none}
+.knob.lock .name::after{content:" ⌷"}
+
+/* дорожка эффектов — отдельный инструмент в паттерне */
+.srow.fxrow{margin-top:6px;padding-top:8px;border-top:1px dashed var(--rule)}
+.srow.fxrow .st{border-style:dashed}
+.srow.fxrow .st.on{background:none;border-style:solid;border-color:var(--ink);
+  box-shadow:inset 0 0 0 2px rgba(20,19,18,.35)}
+.srow.fxrow .st.acc{background:var(--ink);box-shadow:none}
+/* шторка с эффектами — чтобы панель не разрасталась */
+.drawer{border-top:1px solid var(--rule);margin-top:18px}
+.drawer-h{width:100%;display:flex;justify-content:space-between;align-items:center;
+  background:none;border:0;color:var(--ink);cursor:crosshair;padding:14px 2px;
+  font-family:"Cousine",monospace;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
+.drawer-h b{font-size:14px;transition:transform .3s}
+.drawer.open .drawer-h b{transform:rotate(45deg)}
+.drawer-b{max-height:0;overflow:hidden;transition:max-height .4s cubic-bezier(.3,.8,.3,1)}
+.drawer.open .drawer-b{max-height:760px}
+.drawer-b .knobs{margin-top:4px}
+.banks{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.banks button{font-family:"Cousine",monospace;font-size:11px;font-weight:700;letter-spacing:.1em;
+  width:34px;height:34px;border:1px solid var(--rule);background:none;color:var(--ink-soft);cursor:crosshair}
+.banks button.act{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.banks button.play{border-color:var(--ink);color:var(--ink);box-shadow:inset 0 -3px 0 var(--ink)}
+.banks input{width:120px;background:none;border:0;border-bottom:1px solid var(--rule);outline:0;
+  color:var(--ink);font-family:"Cousine",monospace;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;padding:6px 2px}
+.srow.empty .vname{opacity:.45}
+.fxsw{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 18px}
+.fxsw button{font-family:"Cousine","Courier New",monospace;font-size:9px;letter-spacing:.1em;
+  padding:8px 10px;border:1px solid var(--rule);background:none;color:var(--ink-faint);
+  cursor:crosshair;transition:.12s;text-transform:uppercase}
+.fxsw button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.knob.off{opacity:.3}
+
+/* ================= DRUM MACHINE ================= */
+.drum-body{padding:22px 24px}
+.seq{display:grid;gap:6px;overflow-x:auto;padding-bottom:6px}
+.srow{display:grid;grid-template-columns:112px 28px 50px 1fr;gap:8px;align-items:center;min-width:660px}
+.pan{height:20px;position:relative;cursor:ew-resize;touch-action:none}
+.pan::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--rule)}
+.pan::after{content:"";position:absolute;left:50%;top:4px;bottom:4px;width:1px;background:var(--rule)}
+.pan b{position:absolute;top:3px;width:3px;height:14px;background:var(--ink);margin-left:-1.5px;transition:left .06s}
+.pan.mid b{opacity:.55}
+.vname{font-family:"Cousine","Courier New",Courier,monospace;font-size:9px;font-weight:600;letter-spacing:.16em;
+  text-align:left;border:1px solid var(--rule);padding:8px 6px;cursor:crosshair;background:none;color:var(--ink);
+  transition:.1s;white-space:nowrap;overflow:hidden}
+.vname:hover{background:var(--ink);color:var(--paper)}
+.vname.hit{background:var(--ink);color:var(--paper)}
+.vname::after{content:" ·" attr(data-key);opacity:.45;font-size:8px}
+.machine.drop{outline:2px dashed var(--ink);outline-offset:-8px}
+.machine.drop::before{content:"ОТПУСТИ ФАЙЛ — СТАНЕТ СЕМПЛОМ";position:absolute;inset:0;z-index:30;
+  display:grid;place-items:center;background:rgba(226,222,216,.86);
+  font-family:"Cousine",monospace;font-size:12px;font-weight:700;letter-spacing:.2em}
+.vmute{font-family:"Cousine","Courier New",Courier,monospace;font-size:8px;letter-spacing:.1em;border:1px solid var(--rule);
+  background:none;color:var(--ink-faint);padding:8px 0;cursor:crosshair}
+.vmute.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.steps{display:grid;grid-template-columns:repeat(16,1fr);gap:4px}
+.st{aspect-ratio:1;border:1px solid var(--rule);background:none;cursor:crosshair;position:relative;
+  touch-action:none;-webkit-user-select:none;user-select:none;
+  transition:transform .07s,background .1s;padding:0}
+.st:nth-child(4n+1){border-color:rgba(20,19,18,.5)}
+.st:hover{background:rgba(20,19,18,.14)}
+.st::after{content:"";position:absolute;left:1px;right:1px;bottom:1px;
+  height:calc(var(--v,0)*100%);background:var(--ink);opacity:.8;transition:height .08s}
+.st.on{border-color:var(--ink)}
+.st.acc{border-width:1.5px;border-color:var(--ink)}
+.st.vdrag{z-index:5}
+.velbadge{position:fixed;z-index:940;pointer-events:none;background:var(--ink);color:var(--paper);
+  font-family:"Cousine",monospace;font-size:10px;font-weight:700;letter-spacing:.06em;
+  padding:3px 6px;transform:translate(-50%,-140%);opacity:0;transition:opacity .1s}
+.velbadge.show{opacity:1}
+.st.now{transform:scale(1.16)}
+.st.now::before{content:"";position:absolute;inset:-4px;border:1px solid var(--ink)}
+.st.fire{animation:fire .22s ease-out}
+@keyframes fire{0%{transform:scale(1.5)}100%{transform:scale(1)}}
+.sruler{display:grid;grid-template-columns:112px 28px 50px 1fr;gap:8px;min-width:660px}
+.sruler .steps span{font-family:"Cousine","Courier New",Courier,monospace;font-size:8px;letter-spacing:.06em;
+  color:var(--ink-faint);text-align:center}
+.sruler .steps span.b{color:var(--ink)}
+.drum-foot{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
+  margin-top:20px;padding-top:18px;border-top:1px solid var(--rule)}
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.presets select{font-family:"Cousine","Courier New",monospace;font-size:10px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;padding:9px 10px;border:1px solid var(--ink);
+  background:var(--paper);color:var(--ink);cursor:crosshair;max-width:236px;-webkit-appearance:none;appearance:none}
+.presets button{font-family:"Cousine","Courier New",monospace;font-size:10px;font-weight:700;
+  padding:9px 12px;border:1px solid var(--rule);background:none;color:var(--ink-soft);cursor:crosshair;transition:.12s}
+.presets button:hover{border-color:var(--ink);color:var(--ink)}
+.drum-ctrl{display:grid;grid-template-columns:1.4fr 1fr;gap:26px;align-items:center;margin-top:22px;
+  padding-top:18px;border-top:1px solid var(--rule)}
+.drum-note{line-height:1.9;max-width:42ch}
+@media(max-width:900px){.drum-ctrl{grid-template-columns:1fr}}
+
+/* ---------- обложка из паттерна ---------- */
+.cover{display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:start;margin-top:26px}
+.cover .frame{border:1.5px solid var(--ink);padding:8px;background:var(--paper-2);
+  box-shadow:5px 5px 0 rgba(20,19,18,.3)}
+.cover canvas{width:230px;height:230px;display:block;mix-blend-mode:multiply}
+.cover .side{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+
+/* ---------- автоответчик ---------- */
+.ans{border:1.5px solid var(--ink);margin-top:30px;padding:20px 22px;position:relative;
+  background:rgba(255,255,255,.14)}
+.ans .top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.ans .tape{display:flex;gap:14px;align-items:center}
+.ans .hub{width:26px;height:26px;border:1.5px solid var(--ink);border-radius:50%;position:relative}
+.ans .hub::after{content:"";position:absolute;inset:9px;border-left:1.5px solid var(--ink)}
+.ans.play .hub{animation:rot 1.1s linear infinite}
+.ans .msg{margin-top:16px;min-height:5.4em;font-size:17px;line-height:1.75;letter-spacing:.04em;
+  max-width:62ch;color:rgba(20,19,18,.85)}
+.ans .msg i{font-style:normal;opacity:.32}
+.ans .cur{display:inline-block;width:9px;border-bottom:2px solid var(--ink);vertical-align:-2px;
+  animation:blink 1s steps(2,end) infinite}
+
+footer{border-top:1px solid var(--rule);padding:40px 0 70px;position:relative;z-index:5}
+.frow{display:flex;justify-content:space-between;flex-wrap:wrap;gap:18px 40px}
+footer a{color:var(--ink-soft);text-decoration:none}
+.clink{display:inline-block;margin-top:4px;font-size:22px;letter-spacing:.1em;color:var(--ink);
+  text-decoration:none;border-bottom:1px solid var(--rule);transition:border-color .15s}
+.clink:hover{border-color:var(--ink)}
+footer a:hover{color:var(--ink)}
+
+.rv{opacity:0;transform:translateY(16px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
+.rv.in{opacity:1;transform:none}
+
+@media(max-width:1000px){
+  .mgrid{grid-template-columns:1fr}
+  .mcol+.mcol{border-left:0;border-top:1.5px solid var(--ink)}
+}
+@media(max-width:900px){
+  .tally{display:none}
+  nav ul{gap:12px}
+  nav a{font-size:9px}
+}
+
+/* ================= ТЕЛЕФОН ================= */
+@media(max-width:760px){
+  body{font-size:16px}
+  .wrap{padding:0 16px}
+  section{padding:56px 0}
+  nav{padding:12px 16px;gap:8px}
+  nav .brand{font-size:10px;letter-spacing:.14em}
+  nav ul{gap:9px;justify-content:flex-end}
+  nav a{font-size:8px;letter-spacing:.04em}
+  .hero{min-height:80svh;padding:92px 0 40px}
+  h2{font-size:clamp(26px,8vw,40px)}
+  .lbl,.mono{font-size:9px;letter-spacing:.06em}
+
+  .machine::after{inset:4px}
+  .mhead{padding:10px 12px;gap:8px}
+  .mhead .plate{font-size:9px;letter-spacing:.1em}
+  .lamps{gap:9px}
+  .lamp{font-size:8px;letter-spacing:.06em}
+  .mcol,.drum-body{padding:14px 12px}
+
+  .transport{gap:8px}
+  .reel{max-width:96px}
+  .counter{padding:6px 8px;font-size:16px}
+  .counter small{font-size:7px;letter-spacing:.04em}
+  .vus{gap:8px}
+  .vu canvas{height:64px}
+  .scope canvas{height:96px}
+  .tbtn{padding:11px 12px;font-size:9px;letter-spacing:.08em;box-shadow:2px 2px 0 rgba(20,19,18,.28)}
+  .tbtns{gap:6px}
+  .tracks li{grid-template-columns:26px 1fr auto;gap:8px;padding:10px 4px}
+  .tracks .t{font-size:14px;letter-spacing:.02em}
+  .tracks .tag{display:none}
+
+  /* секвенсор влезает в экран целиком, без горизонтальной прокрутки */
+  .srow,.sruler{grid-template-columns:66px 20px 30px 1fr;gap:5px;min-width:0}
+  .steps{gap:2px}
+  .vname{font-size:7px;letter-spacing:.01em;padding:6px 3px}
+  .vname::after{display:none}
+  .vmute{font-size:7px;padding:6px 0}
+  .pan{height:16px}
+  .pan b{width:2px;height:11px}
+  .sruler .steps span{font-size:6px}
+  .st.now{transform:scale(1.1)}
+
+  .knobs{grid-template-columns:repeat(4,1fr);gap:12px 6px}
+  .knob svg{width:58px;height:58px}
+  .knob .name{font-size:7px;letter-spacing:.02em}
+  .knob .val{font-size:7px}
+  .sw2{font-size:8px;padding:8px 9px;letter-spacing:.04em}
+  .fxsw button,.presets button,.presets select{font-size:8px;padding:8px;letter-spacing:.04em}
+  .presets select{max-width:150px}
+  .banks button{width:28px;height:28px;font-size:10px}
+  .banks input{width:84px;font-size:10px}
+  .drum-ctrl{grid-template-columns:1fr;gap:16px}
+  .drum-note{font-size:8px;line-height:1.7}
+
+  .cover{grid-template-columns:1fr;gap:16px}
+  .cover canvas{width:100%;height:auto;max-width:320px}
+  .cover .frame{justify-self:start}
+
+  .noisebox{right:10px;bottom:10px;padding:7px 8px 6px;box-shadow:3px 3px 0 rgba(20,19,18,.3)}
+  .noisebox canvas{width:56px;height:14px}
+  .noisebox .knob svg{width:48px;height:48px}
+  .noisebox .cap{font-size:6px;letter-spacing:.06em}
+
+  .scan{opacity:calc(.16 + var(--n)*.5)}
+  .grain{animation-duration:1.1s}      /* фон перерисовывается реже — телефону легче */
+  .grain2,.dust{animation:none}
+  .ans{padding:14px}
+  .ans .msg{font-size:15px;min-height:6.5em}
+  .clink{font-size:19px}
+  footer{padding:28px 0 44px}
+  .frow{gap:10px 18px}
+}
+@media(max-width:380px){
+  .srow,.sruler{grid-template-columns:54px 18px 24px 1fr;gap:4px}
+  .knobs{grid-template-columns:repeat(3,1fr)}
+  .reel{max-width:78px}
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="rough2">
+    <feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="2" seed="3" result="t2"/>
+    <feDisplacementMap in="SourceGraphic" in2="t2" scale="2.5" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <filter id="rough">
+    <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="4" seed="7" result="t"/>
+    <feDisplacementMap in="SourceGraphic" in2="t" scale="42" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<canvas id="trail"></canvas>
+<div id="retic">
+  <svg viewBox="0 0 34 34">
+    <g class="ring" stroke="currentColor" fill="none" stroke-width="1">
+      <circle cx="17" cy="17" r="9" opacity=".55"/>
+      <path d="M17 1v6M17 27v6M1 17h6M27 17h6" stroke-width="1.2"/>
+      <path d="M6 6h3M6 6v3M28 6h-3M28 6v3M6 28h3M6 28v-3M28 28h-3M28 28v-3" opacity=".8"/>
+    </g>
+    <circle cx="17" cy="17" r="1.2" fill="currentColor"/>
+  </svg>
+</div>
+<div class="grain"></div>
+<div class="grain2"></div>
+<div class="dust" id="dust"></div>
+<div class="blotch"></div>
+<div class="fibres"></div>
+<div class="scan"></div>
+<div class="vign"></div>
+
+<nav>
+  <span class="brand">.ЧЁРНЫЙ ШУМ.</span>
+  <ul class="mono">
+    <li><a href="#demos">Плёнки</a></li>
+    <li><a href="#rhythm">Ритм-машина</a></li>
+    <li><a href="#poster">Плакат</a></li>
+    <li><a href="#contact">Контакты</a></li>
+  </ul>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <div class="wrap sleeve">
+    <h1 class="op" data-t="ЧЁРНЫЙ ШУМ">ЧЁРНЫЙ ШУМ</h1>
+    <div class="tally" id="tally"></div>
+  </div>
+  <div class="scroll lbl"><b></b> ВНИЗ</div>
+</header>
+
+<div class="ticker"><div id="tick"></div></div>
+
+<!-- ================= DEMOS / MACHINE ================= -->
+<section id="demos">
+  <div class="wrap">
+    <div class="lbl rv">01 — РАБОЧИЕ ПЛЁНКИ / ЧЕРНОВЫЕ МИКСЫ</div>
+    <h2 class="op rv" data-t="ДЕМО" style="margin-top:14px">ДЕМО</h2>
+
+    <div class="machine rv" id="machine">
+      <div class="mhead">
+        <span class="plate">МОДЕЛЬ БН—41 / ЛАМПОВЫЙ МАГНИТОФОН</span>
+        <div class="lamps">
+          <span class="lamp" id="lp-pwr"><i></i>ПИТАНИЕ</span>
+          <span class="lamp" id="lp-run"><i></i>ПРОТЯЖКА</span>
+          <span class="lamp" id="lp-clip"><i></i>ПИК</span>
+          <span class="lamp on blink" id="lp-rec"><i></i>МОНИТОР</span>
+        </div>
+      </div>
+
+      <div class="mgrid" id="machine-anchor">
+        <!-- LEFT: transport + tracklist -->
+        <div class="mcol">
+          <div class="transport">
+            <div class="reel" id="reelA">
+              <svg viewBox="0 0 120 120">
+                <g class="spin">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".35"/>
+                  <circle cx="60" cy="60" r="40" fill="rgba(20,19,18,.14)" stroke="currentColor" stroke-width="1.2"/>
+                  <circle cx="60" cy="60" r="11" fill="none" stroke="currentColor" stroke-width="2"/>
+                  <g stroke="currentColor" stroke-width="1.4" opacity=".8">
+                    <circle cx="60" cy="30" r="7" fill="none"/><circle cx="86" cy="75" r="7" fill="none"/>
+                    <circle cx="34" cy="75" r="7" fill="none"/>
+                  </g>
+                  <line x1="60" y1="8" x2="60" y2="20" stroke="currentColor" stroke-width="1.5"/>
+                </g>
+              </svg>
+            </div>
+            <div class="counter"><span id="ctr">000.0</span><small>ПРИЖМИ КАТУШКУ ПАЛЬЦЕМ</small></div>
+            <div class="reel slow" id="reelB">
+              <svg viewBox="0 0 120 120">
+                <g class="spin">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".35"/>
+                  <circle cx="60" cy="60" r="26" fill="rgba(20,19,18,.10)" stroke="currentColor" stroke-width="1.2"/>
+                  <circle cx="60" cy="60" r="11" fill="none" stroke="currentColor" stroke-width="2"/>
+                  <g stroke="currentColor" stroke-width="1.4" opacity=".8">
+                    <circle cx="60" cy="34" r="6" fill="none"/><circle cx="82" cy="72" r="6" fill="none"/>
+                    <circle cx="38" cy="72" r="6" fill="none"/>
+                  </g>
+                  <line x1="60" y1="8" x2="60" y2="20" stroke="currentColor" stroke-width="1.5"/>
+                </g>
+              </svg>
+            </div>
+          </div>
+
+          <div class="tbtns">
+            <button class="tbtn" id="play">▶ ВОСПР.</button>
+            <button class="tbtn" id="stop">■ СТОП</button>
+            <button class="tbtn" id="prev">◀◀ НАЗАД</button>
+            <button class="tbtn" id="next">▶▶ ВПЕРЁД</button>
+          </div>
+
+          <ul class="tracks" id="tracks"></ul>
+        </div>
+
+        <!-- RIGHT: meters + controls -->
+        <div class="mcol">
+          <div class="vus">
+            <div class="vu"><canvas id="vuL"></canvas><div class="cap">КАНАЛ А — ЛЕВЫЙ</div></div>
+            <div class="vu"><canvas id="vuR"></canvas><div class="cap">КАНАЛ Б — ПРАВЫЙ</div></div>
+          </div>
+
+          <div class="scope">
+            <canvas id="scope"></canvas>
+            <span class="tag" id="scopeTag">ОСЦИЛЛОГРАФ — ВОЛНА</span>
+            <span class="sw">
+              <button class="act" data-mode="wave">ВОЛНА</button>
+              <button data-mode="spec">СПЕКТР</button>
+              <button data-mode="lis">X-Y</button>
+            </span>
+          </div>
+
+          <div class="knobs" id="knobs"></div>
+
+          <div class="strip">
+            <div class="fader">
+              <span class="lbl">ОБЩИЙ УРОВЕНЬ</span>
+              <input type="range" id="master" min="0" max="100" value="55">
+            </div>
+            <div class="switches">
+              <button class="sw2 on" id="sw-hiss"><u></u>ШИПЕНИЕ</button>
+              <button class="sw2 on" id="sw-lim"><u></u>ЛИМИТЕР</button>
+              <button class="sw2" id="sw-mono"><u></u>МОНО</button>
+              <button class="sw2" id="sw-sync"><u></u>СИНХР. С РИТМОМ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="lbl rv" style="margin-top:14px">
+      РУЧКУ БЕРИ ЗА ОБОД И КРУТИ · ЦЕНТР = СДВИГ · SHIFT = ТОЧНО · ДВОЙНОЙ КЛИК = СБРОС
+    </div>
+  </div>
+</section>
+
+<!-- ================= RHYTHM UNIT ================= -->
+<section id="rhythm">
+  <div class="wrap">
+    <div class="lbl rv">02 — РИТМ-МАШИНА / ШАГОВЫЙ СЕКВЕНСОР</div>
+    <h2 class="op rv" data-t="БАРАБАНЫ" style="margin-top:14px">БАРАБАНЫ</h2>
+
+    <div class="machine rv" id="drumbox">
+      <div class="mhead">
+        <span class="plate">МОДЕЛЬ БН—808 / СЛОМАННЫЙ РИТМ-КОМПОЗЕР</span>
+        <div class="lamps">
+          <span class="lamp" id="lp-seq"><i></i>ХОД</span>
+          <span class="lamp" id="lp-beat"><i></i>ДОЛЯ</span>
+          <span class="lamp" id="lp-sync"><i></i>СИНХР.</span>
+          <span class="lamp on" id="lp-crush"><i></i><b id="crushTxt" style="font-weight:600">9 БИТ</b></span>
+        </div>
+      </div>
+
+      <div class="drum-body">
+        <div class="seq" id="seq"></div>
+
+        <div class="drum-foot">
+          <div class="tbtns" style="margin:0">
+            <button class="tbtn" id="dplay">▶ ПУСК</button>
+            <button class="tbtn" id="dstop">■ СТОП</button>
+            <button class="tbtn" id="drand">✳ ПЕРЕМОЛОТЬ</button>
+            <button class="tbtn" id="dfxrand">✳ ЭФФЕКТЫ</button>
+            <button class="tbtn" id="dmic">◉ С МИКРОФОНА</button>
+            <button class="tbtn" id="dsmp">⭱ СЕМПЛ ИЗ ФАЙЛА</button>
+            <button class="tbtn" id="dkeyrec">⏺ ЗАПИСЬ С КЛАВИШ</button>
+            <input type="file" id="dsmpfile" accept="audio/*" hidden>
+            <button class="tbtn" id="dclear">✕ СТЕРЕТЬ</button>
+            <button class="tbtn" id="dsave">⭳ WAV</button>
+            <button class="tbtn" id="dmidi">⭳ MIDI</button>
+            <button class="tbtn" id="dpat">⭳ ПАТТЕРН</button>
+            <button class="tbtn" id="dload">⭱ ЗАГРУЗИТЬ</button>
+            <button class="tbtn" id="dlink">⌗ ССЫЛКА</button>
+            <input type="file" id="dfile" accept=".json,application/json" hidden>
+            <button class="sw2" id="sw-sync2" style="align-self:center"><u></u>СИНХР. С ПЛЁНКОЙ</button>
+            <button class="sw2" id="sw-ediv" style="align-self:center"><u></u>ЭХО ПО ТАКТУ</button>
+          </div>
+          <div class="banks" id="banks">
+            <span class="lbl" style="margin-right:4px">БАНК</span>
+            <button data-b="A" class="act">A</button><button data-b="B">B</button>
+            <button data-b="C">C</button><button data-b="D">D</button>
+            <button class="sw2" id="sw-chain" style="width:auto;padding:0 10px"><u></u>ЦЕПЬ</button>
+            <input id="chainStr" value="A A B C" spellcheck="false" title="порядок банков">
+          </div>
+          <div class="presets" id="presets"></div>
+        </div>
+
+        <div class="drum-ctrl">
+          <div class="knobs" id="dknobs"></div>
+          <div class="drum-note lbl">
+            КЛИК — ШАГ ВКЛ/ВЫКЛ · ПОТЯНИ ВВЕРХ ИЛИ КРУТИ КОЛЕСО — ГРОМКОСТЬ 1—127 (У ЭФФЕКТОВ ЕЁ НЕТ) ·
+            ПУНКТИРНАЯ ДОРОЖКА ДЁРГАЕТ ЭФФЕКТЫ · У КИТА СВОЙ ТРАКТ, РУЧКИ МАГНИТОФОНА ЕГО НЕ ТРОГАЮТ
+          </div>
+        </div>
+
+        <div class="drawer" id="fxdrawer">
+          <button class="drawer-h" id="fxtoggle"><span>ЭФФЕКТЫ И ТРАКТ КИТА</span><b>+</b></button>
+          <div class="drawer-b">
+            <div class="knobs" id="fxknobs"></div>
+            <div class="fxsw" id="fxsw"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ПЛАКАТ ================= -->
+<section id="poster">
+  <div class="wrap">
+    <div class="lbl rv">03 — ПЕЧАТЬ / ОБЛОЖКА ИЗ РИТМА</div>
+    <h2 class="op rv" data-t="ПЛАКАТ" style="margin-top:14px">ПЛАКАТ</h2>
+    <div class="cover rv">
+      <div class="frame"><canvas id="coverC" width="760" height="760"></canvas></div>
+      <div class="side">
+        <div class="lbl">ОБЛОЖКА СОБИРАЕТСЯ ИЗ ТВОЕГО ПАТТЕРНА:<br>
+          КАЖДЫЙ УДАР — ПЯТНО, ГРОМКОСТЬ — ЕГО ПЛОТНОСТЬ</div>
+        <button class="tbtn" id="covermake">✳ ПЕРЕСОБРАТЬ</button>
+        <div class="presets" style="gap:6px">
+          <select id="coverfmt">
+            <option value="1400x1400">КВАДРАТ 1400</option>
+            <option value="3000x3000">ВИНИЛ 3000</option>
+            <option value="1080x1920">СТОРИС 1080×1920</option>
+            <option value="2480x3508">ПЛАКАТ A4 300DPI</option>
+          </select>
+          <button class="tbtn" id="coversave" style="padding:9px 12px">⭳ ПЕЧАТЬ</button>
+        </div>
+        <button class="sw2 on" id="sw-fig"><u></u>ФИГУРА ИЗ РИТМА</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================= КОНТАКТЫ ================= -->
+<section id="contact">
+  <div class="wrap">
+    <div class="lbl rv">04 — КОНТАКТЫ</div>
+    <h2 class="op rv" data-t="КОНТАКТЫ" style="margin-top:14px;margin-bottom:30px">КОНТАКТЫ</h2>
+    <div class="ans rv" id="ans">
+      <div class="top">
+        <span class="lbl">АВТООТВЕТЧИК · КАССЕТА · 1 СООБЩЕНИЕ</span>
+        <div class="tape">
+          <span class="hub"></span><span class="hub"></span>
+          <button class="tbtn" id="ansplay" style="padding:9px 14px">▶ ПРОСЛУШАТЬ</button>
+        </div>
+      </div>
+      <div class="msg" id="ansmsg"><i>НАЖМИ ПРОСЛУШАТЬ</i></div>
+    </div>
+
+    <div class="rv" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:26px;margin-top:30px">
+      <div><div class="lbl">ТЕЛЕГРАМ</div>
+        <a class="clink" href="https://t.me/dj_narkoz" target="_blank" rel="noopener">@dj_narkoz</a></div>
+      <div><div class="lbl">ИНСТАГРАМ</div>
+        <a class="clink" href="https://instagram.com/anu_nnak" target="_blank" rel="noopener">@anu_nnak</a></div>
+    </div>
+  </div>
+</section>
+
+<div class="noisebox">
+  <canvas id="nvu"></canvas>
+  <div class="knobs" id="nknob"></div>
+  <div class="cap">ШУМ<br>ВЕСЬ САЙТ</div>
+</div>
+
+<footer>
+  <div class="wrap frow lbl">
+    <span>© 2026 ЧЁРНЫЙ ШУМ</span>
+    <span><a href="https://t.me/dj_narkoz" target="_blank" rel="noopener">ТЕЛЕГРАМ</a> ·
+          <a href="https://instagram.com/anu_nnak" target="_blank" rel="noopener">ИНСТАГРАМ</a></span>
+  </div>
+</footer>
+
+<script>
+let trailFade=()=>{};   // выцветание графитового следа — зовёт общий цикл кадров
+
+/* =========================================================
+   DUST + SCRATCH PLATE — generated once, tiled over everything
+   ========================================================= */
+(function dustPlate(){
+  const S=420,c=document.createElement('canvas');c.width=c.height=S;
+  const g=c.getContext('2d');
+  // heavy speckle
+  for(let i=0;i<9000;i++){
+    const a=Math.random();
+    g.fillStyle=`rgba(20,19,18,${(a*a*.55).toFixed(3)})`;
+    const r=Math.random()<.06?1.8:Math.random()<.3?1.1:.7;
+    g.beginPath();g.arc(Math.random()*S,Math.random()*S,r,0,7);g.fill();
+  }
+  // clumps of grit
+  for(let i=0;i<130;i++){
+    const x=Math.random()*S,y=Math.random()*S,n=3+Math.random()*9;
+    for(let k=0;k<n;k++){
+      g.fillStyle=`rgba(20,19,18,${(.12+Math.random()*.4).toFixed(2)})`;
+      g.beginPath();g.arc(x+(Math.random()-.5)*11,y+(Math.random()-.5)*11,.6+Math.random()*1.4,0,7);g.fill();
+    }
+  }
+  // hair scratches
+  g.lineCap='round';
+  for(let i=0;i<26;i++){
+    g.strokeStyle=`rgba(20,19,18,${(.08+Math.random()*.22).toFixed(2)})`;
+    g.lineWidth=Math.random()<.3?1.1:.6;
+    let x=Math.random()*S,y=Math.random()*S,a=Math.random()*7;
+    g.beginPath();g.moveTo(x,y);
+    for(let k=0;k<10+Math.random()*24;k++){a+=(Math.random()-.5)*.5;x+=Math.cos(a)*4;y+=Math.sin(a)*4;g.lineTo(x,y)}
+    g.stroke();
+  }
+  document.getElementById('dust').style.backgroundImage=`url(${c.toDataURL()})`;
+})();
+
+/* =========================================================
+   КУРСОР: под пальцем остаётся графит
+   Медленное движение мажет плотнее, быстрое тянет сухой хвост.
+   Клик впечатывает отпечаток. След живёт около полуминуты.
+   ========================================================= */
+(function cursorTrail(){
+  if(matchMedia('(hover: none)').matches){document.body.classList.add('touch');return}
+  const c=document.getElementById('trail'),g=c.getContext('2d'),ret=document.getElementById('retic');
+  let W,H,px=null,py=null,pt=0,acc=0;
+  const fit=()=>{W=c.width=innerWidth;H=c.height=innerHeight};
+  addEventListener('resize',fit);fit();
+
+  const smear=(x,y,r,a)=>{
+    const gr=g.createRadialGradient(x,y,0,x,y,r);
+    gr.addColorStop(0,`rgba(26,24,22,${a})`);
+    gr.addColorStop(.5,`rgba(26,24,22,${a*.4})`);
+    gr.addColorStop(1,'rgba(26,24,22,0)');
+    g.fillStyle=gr;
+    g.save();g.translate(x,y);g.rotate(Math.random()*3.14);
+    g.beginPath();g.ellipse(0,0,r,r*(.45+Math.random()*.5),0,0,7);g.fill();g.restore();
+  };
+  addEventListener('pointermove',e=>{
+    ret.style.transform=`translate(${e.clientX}px,${e.clientY}px)`;
+    ret.classList.add('on');
+    const now=performance.now();
+    if(px!==null){
+      const dx=e.clientX-px,dy=e.clientY-py,d=Math.hypot(dx,dy),dt=Math.max(8,now-pt);
+      const sp=d/dt;                                   // пикселей на миллисекунду
+      acc+=d;
+      if(acc>7){                                       // не сыпем на каждый пиксель
+        acc=0;
+        const slow=Math.max(0,1-sp*1.6);               // ведёшь медленно — жмёшь сильнее
+        const r=7+slow*17+Math.random()*5;
+        const a=(.020+slow*.055)*(1+N.noise*1.6);      // ручка ШУМ пачкает сильнее
+        const step=Math.max(1,Math.round(d/9));        // размазываем по отрезку — хвост
+        for(let i=0;i<step;i++)smear(px+dx*i/step,py+dy*i/step,r,a/step*1.6);
+      }
+    }
+    px=e.clientX;py=e.clientY;pt=now;
+  },{passive:true});
+  addEventListener('pointerdown',e=>{
+    ret.classList.add('press');
+    const x=e.clientX,y=e.clientY,rot=Math.random()*6;
+    const put=(ox,oy,rx,ry,a)=>{
+      g.save();g.translate(x,y);g.rotate(rot);g.translate(ox,oy);
+      const gr=g.createRadialGradient(0,0,0,0,0,Math.max(rx,ry));
+      gr.addColorStop(0,`rgba(26,24,22,${a})`);gr.addColorStop(1,'rgba(26,24,22,0)');
+      g.fillStyle=gr;g.beginPath();g.ellipse(0,0,rx,ry,0,0,7);g.fill();g.restore();
+    };
+    put(0,6,17,13,.30);                                 // подушечка ладони
+    [[-14,-11,5,9],[-4,-16,5,10],[6,-15,5,10],[15,-7,4,8]]
+      .forEach(([ox,oy,rx,ry])=>put(ox,oy,rx,ry,.26));  // и четыре пальца
+  });
+  addEventListener('pointerup',()=>ret.classList.remove('press'));
+  addEventListener('pointerleave',()=>ret.classList.remove('on'));
+
+  let f=0;                                              // выцветание следа
+  trailFade=()=>{                                       // зовёт общий цикл кадров
+    if(++f%3)return;
+    g.globalCompositeOperation='destination-out';
+    g.fillStyle='rgba(0,0,0,.012)';
+    g.fillRect(0,0,W,H);
+    g.globalCompositeOperation='source-over';
+  };
+})();
+
+/* =========================================================
+   SMUDGES
+   ========================================================= */
+function smudge(host,{x,y,w,h,rot=0,op=.6}){
+  const d=document.createElement('div');d.className='smudge';
+  d.style.cssText=`left:${x};top:${y};width:${w}px;height:${h}px;opacity:${op};transform:rotate(${rot}deg)`;
+  d.innerHTML='<i></i>';host.appendChild(d);
+}
+function handprint(host,{x,y,scale=1,rot=0,op=.5}){
+  const c=document.createElement('canvas'),S=260;c.width=c.height=S;
+  const g=c.getContext('2d');
+  const blob=(cx,cy,rx,ry,a,alpha)=>{g.save();g.translate(cx,cy);g.rotate(a);
+    const gr=g.createRadialGradient(0,0,0,0,0,Math.max(rx,ry));
+    gr.addColorStop(0,`rgba(30,28,26,${alpha})`);gr.addColorStop(.6,`rgba(30,28,26,${alpha*.5})`);
+    gr.addColorStop(1,'rgba(30,28,26,0)');g.fillStyle=gr;g.beginPath();g.ellipse(0,0,rx,ry,0,0,7);g.fill();g.restore();};
+  blob(130,170,58,42,.1,.55);
+  [[70,92,16,34,-.25],[103,74,15,36,-.1],[138,72,15,37,.04],[172,84,14,34,.2],[205,140,13,26,.9]]
+    .forEach(([cx,cy,rx,ry,a])=>blob(cx,cy,rx,ry,a,.6));
+  const d=document.createElement('div');d.className='print';
+  d.style.cssText=`left:${x};top:${y};width:${S*scale}px;height:${S*scale}px;opacity:${op};transform:rotate(${rot}deg)`;
+  c.style.cssText='width:100%;height:100%;display:block';d.appendChild(c);host.appendChild(d);
+}
+const hs=document.querySelector('.hero .sleeve');
+smudge(hs,{x:'-4%',y:'-14%',w:420,h:260,rot:-8,op:.45});
+smudge(hs,{x:'52%',y:'42%',w:520,h:300,rot:6,op:.38});
+smudge(hs,{x:'18%',y:'78%',w:340,h:180,rot:-3,op:.3});
+handprint(hs,{x:'58%',y:'-18%',scale:1.5,rot:12,op:.5});
+handprint(hs,{x:'6%',y:'56%',scale:1.1,rot:-160,op:.34});
+handprint(hs,{x:'80%',y:'62%',scale:.9,rot:40,op:.28});
+document.querySelectorAll('section').forEach((s,i)=>{
+  smudge(s,{x:(i%2?'64%':'-6%'),y:'10%',w:380+i*40,h:220,rot:i%2?9:-7,op:.22});
+  if(i%2===0) handprint(s,{x:'74%',y:'64%',scale:1.1,rot:20+i*30,op:.18});
+});
+const tal=document.getElementById('tally');
+for(let i=0;i<14;i++){const s=document.createElement('span');
+  s.style.transform=`rotate(${(Math.random()*16-8).toFixed(1)}deg) scaleX(${(.55+Math.random()*.55).toFixed(2)})`;tal.appendChild(s);}
+
+/* ticker */
+const tickWords=['РАБОЧИЕ ПЛЁНКИ — НЕ ИЗДАНО','ЧЕРНОВОЙ МИКС 04','КАТУШКА 07 ПОТЕРЯНА',
+  'БЕЗ ТЕЛЕФОНОВ В ПЕРВОМ РЯДУ','СИГНАЛ ПОТЕРЯН','СКОРОСТЬ 19 СМ/С','НЕ РАСПРОСТРАНЯТЬ'];
+const tHTML=tickWords.map(w=>`<span>${w}</span>`).join('');
+document.getElementById('tick').innerHTML='<span style="display:inline-block">'+tHTML+tHTML+'</span>';
+
+/* =========================================================
+   AUDIO ENGINE
+   ========================================================= */
+const demos=[
+  {t:'НЕСУЩАЯ',            d:'4:12',tag:'КАТУШКА 01 / ДУБЛЬ 3',root:55,  noise:.22,cut:520, bpm:92},
+  {t:'ОТПЕЧАТКИ',          d:'5:01',tag:'КАТУШКА 02 / ДУБЛЬ 1',root:49,  noise:.18,cut:400, bpm:78},
+  {t:'БЕЛАЯ КОМНАТА',      d:'3:38',tag:'КАТУШКА 02 / ДУБЛЬ 6',root:73.4,noise:.34,cut:900, bpm:124},
+  {t:'НУЛЕВОЙ СИГНАЛ',     d:'2:56',tag:'КАТУШКА 04 / ЧЕРНОВИК',root:87.3,noise:.46,cut:1400,bpm:140},
+  {t:'ТЕРПЕЛИВАЯ МАШИНА',  d:'6:24',tag:'КАТУШКА 05 / ДУБЛЬ 2',root:41.2,noise:.14,cut:320, bpm:66},
+  {t:'ПЕПЕЛ В ДИНАМИКЕ',   d:'4:33',tag:'КАТУШКА 06 / БЕЗ СВЕДЕНИЯ',root:58.3,noise:.30,cut:600,bpm:104},
+  {t:'.МЁРТВЫЙ ЭФИР.',     d:'8:09',tag:'КАТУШКА 08 / ФИНАЛ?',root:36.7,noise:.10,cut:240, bpm:58},
+];
+const ul=document.getElementById('tracks');
+ul.innerHTML=demos.map((t,i)=>`<li data-i="${i}">
+  <span class="n">${String(i+1).padStart(2,'0')}</span>
+  <span class="t">${t.t}</span>
+  <span class="tag">${t.tag}</span>
+  <span class="d">${t.d}</span>
+  <span class="bar"><b></b></span></li>`).join('');
+
+const P={tone:.55,drive:.25,hiss:.35,space:.30,speed:.5,wow:.30};
+/* состояние секвенсора и глобального шума — объявлено выше, т.к. его читает цикл отрисовки */
+let seqOn=false,nextT=0,stepN=0,timer=null,drawQ=[],syncOn=false,dApi=null,nvu=null,gN=null,nvuPeak=0;
+let micBuf=null,micRec=null;   // семпл с микрофона
+let tapeRate=1,tapeTarget=1,scrubbing=false,lastFrame=0;   // протяжка: 1 — норма, 0 — палец на катушке
+let reelAngle=[0,0],reelEls=null;                          // угол каждой катушки в градусах
+const N={noise:0};                      // ручка ШУМ, 0..1 — влияет на весь сайт
+let stopF,stopG;
+let ac,master,limiter,analyserL,analyserR,splitter,scopeAn,
+    toneF,shaper,preG,wowDelay,wowLFO,wowDepth,dly,fb,wet,dryG,hissG,srcNodes=[],
+    cur=-1,playing=false,t0=0,counter=0;
+const machine=document.getElementById('machine');
+
+function makeCurve(k){
+  const n=1024,c=new Float32Array(n),deg=Math.PI/180,amt=k*140+.0001;
+  for(let i=0;i<n;i++){const x=i*2/n-1;c[i]=(3+amt)*x*20*deg/(Math.PI+amt*Math.abs(x));}
+  return c;
+}
+function initAudio(){
+  if(ac)return;
+  ac=new (window.AudioContext||window.webkitAudioContext)();
+  preG=ac.createGain();preG.gain.value=.5;
+  shaper=ac.createWaveShaper();shaper.curve=makeCurve(P.drive);shaper.oversample='2x';
+  toneF=ac.createBiquadFilter();toneF.type='lowpass';toneF.Q.value=2.2;
+  /* останов ленты: чем медленнее протяжка, тем глуше и тише — как на самом деле */
+  stopF=ac.createBiquadFilter();stopF.type='lowpass';stopF.frequency.value=20000;stopF.Q.value=.7;
+  stopG=ac.createGain();stopG.gain.value=1;
+  wowDelay=ac.createDelay(.05);wowDelay.delayTime.value=.008;
+  wowLFO=ac.createOscillator();wowLFO.frequency.value=.9;
+  wowDepth=ac.createGain();wowDepth.gain.value=.0022*P.wow;
+  wowLFO.connect(wowDepth).connect(wowDelay.delayTime);wowLFO.start();
+  dly=ac.createDelay(1.2);dly.delayTime.value=.38;
+  fb=ac.createGain();fb.gain.value=P.space*.72;
+  wet=ac.createGain();wet.gain.value=P.space*.65;
+  dryG=ac.createGain();dryG.gain.value=1;
+  limiter=ac.createDynamicsCompressor();
+  limiter.threshold.value=-14;limiter.knee.value=6;limiter.ratio.value=12;limiter.attack.value=.003;limiter.release.value=.25;
+  master=ac.createGain();master.gain.value=.55;
+  splitter=ac.createChannelSplitter(2);
+  analyserL=ac.createAnalyser();analyserR=ac.createAnalyser();scopeAn=ac.createAnalyser();
+  [analyserL,analyserR].forEach(a=>{a.fftSize=1024;a.smoothingTimeConstant=.7});
+  scopeAn.fftSize=2048;
+
+  preG.connect(shaper).connect(toneF).connect(stopF).connect(stopG).connect(wowDelay);
+  wowDelay.connect(dryG).connect(limiter);
+  wowDelay.connect(dly);dly.connect(fb).connect(dly);dly.connect(wet).connect(limiter);
+  limiter.connect(master);
+  master.connect(splitter);
+  splitter.connect(analyserL,0);splitter.connect(analyserR,1);
+  master.connect(scopeAn);
+  master.connect(ac.destination);
+  applyAll();
+}
+/* скорость протяжки: питч уезжает вниз, катушки замедляются */
+function applyTapeRate(){
+  if(!ac)return;
+  const t=ac.currentTime, r=Math.abs(tapeRate);
+  const cents=Math.max(-3600,1200*Math.log2(Math.max(.015,r)));
+  srcNodes.forEach(n=>{if(n.__osc)
+    n.detune.setTargetAtTime((P.speed-.5)*1800+cents,t,.03)});
+  if(stopF){
+    // на нуле остаётся глухой гул на 170 Гц, дальше полоса раскрывается
+    stopF.frequency.setTargetAtTime(170+Math.min(1.2,Math.pow(r,.6))*19000,t,.04);
+    stopG.gain.setTargetAtTime(.22+.78*Math.min(1,r),t,.04);
+  }
+  if(wowDepth) // на выбеге лента гуляет сильнее
+    wowDepth.gain.setTargetAtTime(.0035*P.wow*(1+2.5*Math.max(0,1-r)),t,.05);
+}
+function applyAll(){
+  if(!ac)return;
+  toneF.frequency.setTargetAtTime(120*Math.pow(50,P.tone),ac.currentTime,.03);
+  shaper.curve=makeCurve(P.drive);
+  preG.gain.setTargetAtTime(.5-P.drive*.28,ac.currentTime,.05);
+  if(hissG)hissG.gain.setTargetAtTime(hissOn?P.hiss*.16*(1+N.noise*2.2):0,ac.currentTime,.05);
+  fb.gain.setTargetAtTime(P.space*.72,ac.currentTime,.05);
+  wet.gain.setTargetAtTime(P.space*.65,ac.currentTime,.05);
+  wowDepth.gain.setTargetAtTime(.0035*P.wow,ac.currentTime,.05);
+  wowLFO.frequency.setTargetAtTime(.4+P.wow*4.5,ac.currentTime,.05);
+  applyTapeRate();
+}
+function stopSrc(){srcNodes.forEach(n=>{try{n.stop&&n.stop()}catch(e){}try{n.disconnect()}catch(e){}});srcNodes=[];hissG=null}
+let hissOn=true,limOn=true,monoOn=false;
+function build(i){
+  const T=demos[i];stopSrc();
+  const g=ac.createGain();g.gain.value=0;g.connect(preG);srcNodes.push(g);
+  const bus=ac.createBiquadFilter();bus.type='lowpass';bus.frequency.value=T.cut*3;bus.connect(g);srcNodes.push(bus);
+  [1,1.5,2,2.99,4.02,6.01].forEach((m,k)=>{
+    const o=ac.createOscillator();o.type=k%2?'sawtooth':'triangle';
+    o.frequency.value=T.root*m;o.detune.value=(k-2)*7+(P.speed-.5)*1800;o.__osc=1;
+    const og=ac.createGain();og.gain.value=.15/(k+1);
+    o.connect(og).connect(bus);o.start();srcNodes.push(o,og);
+  });
+  // pulsing sub — industrial heartbeat
+  const sub=ac.createOscillator();sub.type='sine';sub.frequency.value=T.root/2;sub.__osc=1;
+  const sg=ac.createGain();sg.gain.value=0;
+  const pulse=ac.createOscillator();pulse.type='square';
+  pulse.frequency.value=syncOn?bpm()/60*2:1.6;   // в синхроне — восьмыми по сетке
+  const pg=ac.createGain();pg.gain.value=.11;
+  pulse.connect(pg).connect(sg.gain);sub.connect(sg).connect(bus);
+  sub.start();pulse.start();srcNodes.push(sub,sg,pulse,pg);
+  // tape hiss
+  const len=2*ac.sampleRate,buf=ac.createBuffer(1,len,ac.sampleRate),ch=buf.getChannelData(0);
+  for(let s=0;s<len;s++)ch[s]=(Math.random()*2-1)*.5;
+  const nz=ac.createBufferSource();nz.buffer=buf;nz.loop=true;
+  hissG=ac.createGain();hissG.gain.value=hissOn?P.hiss*.16:0;
+  const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=T.cut*2.4;nf.Q.value=.6;
+  nz.connect(nf).connect(hissG).connect(g);nz.start();srcNodes.push(nz,hissG,nf);
+  // slow filter sweep
+  const lfo=ac.createOscillator();lfo.frequency.value=.06+Math.random()*.12;
+  const lg=ac.createGain();lg.gain.value=T.cut*.5;
+  lfo.connect(lg).connect(bus.frequency);lfo.start();srcNodes.push(lfo,lg);
+  g.gain.linearRampToValueAtTime(.95,ac.currentTime+2.2);
+  applyAll();
+}
+function play(i){
+  initAudio();ac.resume();
+  cur=i;playing=true;t0=performance.now();counter=0;
+  if(syncOn&&demos[i].bpm){                       // темп берём из паспорта плёнки
+    D.tempo=clamp((demos[i].bpm-50)/120);
+    if(dApi&&dApi.tempo)dApi.tempo.render();
+  }
+  build(i);
+  if(syncOn){seqStop();seqStart();}               // старт с общего нуля — сетка совпадает
+  machine.classList.add('run');
+  document.getElementById('play').classList.add('act');
+  lamp('lp-pwr',true);lamp('lp-run',true);
+  [...ul.children].forEach((li,k)=>li.classList.toggle('on',k===i));
+}
+function halt(){
+  if(syncOn&&seqOn)seqStop();
+  stopSrc();playing=false;machine.classList.remove('run');
+  document.getElementById('play').classList.remove('act');
+  lamp('lp-run',false);
+  [...ul.children].forEach(li=>{li.classList.remove('on');li.querySelector('.bar b').style.right='100%'});
+}
+function lamp(id,on){document.getElementById(id).classList.toggle('on',on)}
+ul.addEventListener('click',e=>{const li=e.target.closest('li');if(!li)return;
+  const i=+li.dataset.i;(playing&&i===cur)?halt():play(i);});
+document.getElementById('play').onclick=()=>playing?halt():play(cur<0?0:cur);
+document.getElementById('stop').onclick=halt;
+document.getElementById('next').onclick=()=>play(((cur<0?-1:cur)+1)%demos.length);
+document.getElementById('prev').onclick=()=>play(((cur<0?1:cur)-1+demos.length)%demos.length);
+
+/* master fader + switches */
+document.getElementById('master').oninput=e=>{initAudio();master.gain.setTargetAtTime(e.target.value/100*.9,ac.currentTime,.02)};
+document.getElementById('sw-hiss').onclick=function(){hissOn=!hissOn;this.classList.toggle('on',hissOn);applyAll()};
+document.getElementById('sw-lim').onclick=function(){
+  limOn=!limOn;this.classList.toggle('on',limOn);
+  if(ac){limiter.threshold.setTargetAtTime(limOn?-14:0,ac.currentTime,.02);
+         limiter.ratio.setTargetAtTime(limOn?12:1,ac.currentTime,.02);}
+};
+document.getElementById('sw-mono').onclick=function(){
+  monoOn=!monoOn;this.classList.toggle('on',monoOn);
+  if(ac)master.channelCount=monoOn?1:2;
+};
+function setSync(v){
+  syncOn=v;
+  ['sw-sync','sw-sync2'].forEach(id=>{const b=document.getElementById(id);if(b)b.classList.toggle('on',syncOn)});
+  lamp('lp-sync',syncOn);
+  const tk=document.querySelector('#dknobs .knob[data-k="tempo"]');
+  if(tk)tk.classList.toggle('lock',syncOn);       // темп ведёт плёнка — ручка блокируется
+  if(syncOn){
+    if(cur>=0&&demos[cur].bpm){D.tempo=clamp((demos[cur].bpm-50)/120);if(dApi&&dApi.tempo)dApi.tempo.render()}
+    if(playing){seqStop();seqStart();}            // подхватываем на ходу
+    else if(seqOn){seqStop();play(cur<0?0:cur)}
+  }
+}
+document.getElementById('sw-sync').onclick=()=>setSync(!syncOn);
+document.getElementById('sw-sync2').onclick=()=>setSync(!syncOn);
+
+/* =========================================================
+   KNOBS
+   ========================================================= */
+const knobDefs=[
+  {k:'tone', name:'ТЕМБР',     def:.55,detent:null,fmt:v=>Math.round(120*Math.pow(50,v))+' ГЦ'},
+  {k:'drive',name:'ПЕРЕГРУЗ',  def:.25,detent:null,fmt:v=>Math.round(v*100)+'%'},
+  {k:'hiss', name:'ШИПЕНИЕ',   def:.35,detent:null,fmt:v=>Math.round(v*100)+'%'},
+  {k:'space',name:'КАМЕРА',    def:.30,detent:null,fmt:v=>Math.round(v*100)+'%'},
+  {k:'speed',name:'СКОРОСТЬ',  def:.5, detent:.5,  fmt:v=>(9.5+v*28.6).toFixed(1)+' СМ/С'},
+  {k:'wow',  name:'ДЕТОНАЦИЯ', def:.30,detent:null,fmt:v=>Math.round(v*100)+'%'},
+];
+const clamp=v=>Math.min(1,Math.max(0,v));
+
+function buildKnobs(box,defs,store,onChange){
+const api={};
+box.innerHTML=defs.map(d=>`
+  <div class="knob" data-k="${d.k}">
+    <div class="bubble"></div>
+    <svg viewBox="0 0 100 100" tabindex="0" role="slider"
+         aria-label="${d.name}" aria-valuemin="0" aria-valuemax="100">
+      <!-- fixed bezel: scale ticks + value arc -->
+      <g stroke="currentColor" opacity=".5" stroke-width="1.3">
+        ${Array.from({length:11},(_,i)=>{
+          const a=(-135+i*27)*Math.PI/180,r1=i%5===0?47:45,r2=39,
+                x1=50+Math.sin(a)*r1,y1=50-Math.cos(a)*r1,
+                x2=50+Math.sin(a)*r2,y2=50-Math.cos(a)*r2;
+          return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" ${i%5===0?'stroke-width="2.2" opacity="1"':''}/>`}).join('')}
+      </g>
+      ${d.detent!=null?`<line x1="50" y1="4" x2="50" y2="12" stroke="currentColor" stroke-width="2.4"/>`:''}
+      <path class="arc" pathLength="100" stroke-dasharray="0 100"
+            d="M21.01 78.99 A41 41 0 1 1 78.99 78.99"/>
+      <!-- rotating body -->
+      <g class="body">
+        <circle class="bezel" cx="50" cy="50" r="31" fill="rgba(20,19,18,.10)" stroke="currentColor" stroke-width="1.6"/>
+        <g stroke="currentColor" stroke-width="1.5" opacity=".85">
+          ${Array.from({length:24},(_,i)=>{
+            const a=i*15*Math.PI/180,x1=50+Math.sin(a)*31,y1=50-Math.cos(a)*31,
+                  x2=50+Math.sin(a)*26,y2=50-Math.cos(a)*26;
+            return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`}).join('')}
+        </g>
+        <circle cx="50" cy="50" r="24" fill="rgba(226,222,216,.55)" stroke="currentColor" stroke-width=".9" opacity=".9"/>
+        <line x1="50" y1="50" x2="50" y2="22" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+        <circle cx="50" cy="50" r="8" fill="none" stroke="currentColor" stroke-width=".8" opacity=".45"/>
+        <circle cx="50" cy="50" r="2.6" fill="currentColor"/>
+      </g>
+    </svg>
+    <div class="name">${d.name}</div>
+    <div class="val"></div>
+    <div class="mode"></div>
+  </div>`).join('');
+
+box.querySelectorAll('.knob').forEach(el=>{
+  const key=el.dataset.k, def=defs.find(d=>d.k===key),
+        body=el.querySelector('.body'), arc=el.querySelector('.arc'),
+        val=el.querySelector('.val'), bub=el.querySelector('.bubble'),
+        modeEl=el.querySelector('.mode'), svg=el.querySelector('svg');
+
+  const render=()=>{
+    const v=store[key];
+    body.style.transform=`rotate(${(-135+v*270).toFixed(2)}deg)`;
+    arc.setAttribute('stroke-dasharray',`${(v*100).toFixed(2)} 100`);
+    const txt=def.fmt(v);
+    val.textContent=txt;bub.textContent=txt;
+    svg.setAttribute('aria-valuenow',Math.round(v*100));
+    svg.setAttribute('aria-valuetext',txt);
+  };
+
+  const set=(v,soft=true)=>{
+    v=clamp(v);
+    // soft detent — the knob "catches" at the centre notch like a real one
+    if(soft&&def.detent!=null&&Math.abs(v-def.detent)<.022)v=def.detent;
+    store[key]=v;render();onChange(key);
+  };
+  render();
+
+  api[key]={render,set};
+
+  /* ---- вращение: значение следует за углом руки вокруг оси ---- */
+  let drag=false, lastAng=0, rotary=false, sy=0, sv=0, moved=0;
+  const centre=()=>{const r=svg.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2,r:r.width/2}};
+  const angOf=(e,c)=>Math.atan2(e.clientY-c.y,e.clientX-c.x);
+  const fine=e=>e.altKey?.06:e.shiftKey?.22:1;   // shift = fine, alt = micro
+
+  svg.addEventListener('pointerdown',e=>{
+    e.preventDefault();initAudio();
+    const c=centre(),dx=e.clientX-c.x,dy=e.clientY-c.y,dist=Math.hypot(dx,dy);
+    rotary=dist>c.r*.34;                          // grabbed the rim → turn it; centre → slide
+    drag=true;moved=0;lastAng=angOf(e,c);sy=e.clientY;sv=store[key];
+    el.classList.add('drag');
+    modeEl.textContent=rotary?'ВРАЩЕНИЕ':'СДВИГ';
+    svg.setPointerCapture(e.pointerId);svg.focus();
+  });
+
+  svg.addEventListener('pointermove',e=>{
+    if(!drag)return;
+    const c=centre();
+    if(rotary){
+      let a=angOf(e,c),d=a-lastAng;
+      while(d>Math.PI)d-=Math.PI*2;               // wrap-safe
+      while(d<-Math.PI)d+=Math.PI*2;
+      lastAng=a;
+      moved+=Math.abs(d);
+      set(store[key]+(d/(Math.PI*1.5))*fine(e));  // 270° of hand travel = full sweep
+    }else{
+      set(sv+((sy-e.clientY)/200)*fine(e));
+    }
+    modeEl.textContent=(e.altKey?'МИКРО':e.shiftKey?'ТОЧНО':(rotary?'ВРАЩЕНИЕ':'СДВИГ'));
+  });
+
+  const release=()=>{drag=false;el.classList.remove('drag')};
+  svg.addEventListener('pointerup',release);
+  svg.addEventListener('pointercancel',release);
+  svg.addEventListener('lostpointercapture',release);
+
+  /* wheel */
+  svg.addEventListener('wheel',e=>{
+    e.preventDefault();initAudio();
+    set(store[key]-Math.sign(e.deltaY)*.035*fine(e));
+    el.classList.add('drag');clearTimeout(svg.__wt);
+    svg.__wt=setTimeout(()=>el.classList.remove('drag'),650);
+  },{passive:false});
+
+  /* double click = back to factory position */
+  svg.addEventListener('dblclick',()=>{initAudio();set(def.def,false)});
+
+  /* keyboard */
+  svg.addEventListener('keydown',e=>{
+    const step=(e.shiftKey?.01:.04);
+    if(['ArrowUp','ArrowRight'].includes(e.key)){set(store[key]+step);e.preventDefault()}
+    if(['ArrowDown','ArrowLeft'].includes(e.key)){set(store[key]-step);e.preventDefault()}
+    if(e.key==='Home'){set(0,false);e.preventDefault()}
+    if(e.key==='End'){set(1,false);e.preventDefault()}
+    if(e.key==='Enter'){set(def.def,false)}
+    initAudio();
+  });
+});
+return api;
+}
+buildKnobs(document.getElementById('knobs'),knobDefs,P,()=>applyAll());
+
+/* =========================================================
+   ГЛОБАЛЬНЫЙ ШУМ — фон, тряска текста и белый шум в звуке
+   ========================================================= */
+let noiseSrc,noiseGain,noiseHP,noiseLP,noiseBump,noiseWobble,crackleTimer=null;
+function initNoiseVoice(){
+  initAudio();
+  if(noiseSrc)return;
+  // РОЗОВЫЙ шум (Voss/one-pole) — глуше и «шерстянее» белого, ближе к магнитному
+  const L=3*ac.sampleRate,b=ac.createBuffer(1,L,ac.sampleRate),ch=b.getChannelData(0);
+  let b0=0,b1=0,b2=0;
+  for(let i=0;i<L;i++){
+    const w=Math.random()*2-1;
+    b0=.99765*b0+w*.0990460; b1=.96300*b1+w*.2965164; b2=.57000*b2+w*1.0526913;
+    ch[i]=(b0+b1+b2+w*.1848)*.28;
+  }
+  noiseSrc=ac.createBufferSource();noiseSrc.buffer=b;noiseSrc.loop=true;
+  noiseHP=ac.createBiquadFilter();noiseHP.type='highpass';noiseHP.frequency.value=320;   // убираем низ
+  noiseLP=ac.createBiquadFilter();noiseLP.type='lowpass';noiseLP.frequency.value=5200;   // потолок ленты
+  noiseLP.Q.value=.4;
+  noiseBump=ac.createBiquadFilter();noiseBump.type='peaking';                            // горб на 2.6к —
+  noiseBump.frequency.value=2600;noiseBump.Q.value=.9;noiseBump.gain.value=5;            // характерное «сссс»
+  noiseGain=ac.createGain();noiseGain.gain.value=0;
+  noiseSrc.connect(noiseHP).connect(noiseBump).connect(noiseLP).connect(noiseGain).connect(limiter);
+  // дыхание уровня: лента шумит неровно
+  noiseWobble=ac.createOscillator();noiseWobble.frequency.value=.13;
+  const wg=ac.createGain();wg.gain.value=0;
+  noiseWobble.connect(wg).connect(noiseGain.gain);noiseWobble.start();
+  noiseGain.__wob=wg;
+  noiseSrc.start();
+}
+/* треск и выпадения — редкие щелчки по осыпавшемуся слою */
+function crackle(){
+  if(!ac||!noiseGain||N.noise<.05)return;
+  const t=ac.currentTime+Math.random()*.25;
+  const o=ac.createOscillator();o.type='square';o.frequency.value=900+Math.random()*2600;
+  const f=ac.createBiquadFilter();f.type='bandpass';f.frequency.value=1400+Math.random()*2000;f.Q.value=4;
+  const g=ac.createGain();
+  const peak=.02+N.noise*.12;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.0012);
+  g.gain.exponentialRampToValueAtTime(.0001,t+.02+Math.random()*.05);
+  o.connect(f).connect(g).connect(limiter);o.start(t);o.stop(t+.1);
+  // выпадение сигнала: короткий провал громкости, как дырка в слое
+  if(N.noise>.45&&Math.random()<.35){
+    const d=.05+Math.random()*.12;
+    noiseGain.gain.cancelScheduledValues(t);
+    noiseGain.gain.setTargetAtTime(.0005,t,.006);
+    noiseGain.gain.setTargetAtTime(Math.pow(N.noise,2)*.34,t+d,.02);
+  }
+}
+function applyNoise(){
+  document.documentElement.style.setProperty('--n',N.noise.toFixed(3));
+  document.body.classList.toggle('noisy',N.noise>.5);
+  if(ac){
+    initNoiseVoice();
+    // квадратичная кривая: до половины — лёгкая пыль, дальше — осыпавшаяся плёнка
+    noiseGain.gain.setTargetAtTime(Math.pow(N.noise,2)*.34,ac.currentTime,.10);
+    noiseGain.__wob.gain.setTargetAtTime(Math.pow(N.noise,2)*.09,ac.currentTime,.1);
+    noiseLP.frequency.setTargetAtTime(4200+N.noise*3400,ac.currentTime,.1);   // сильнее шум — шире полоса
+    noiseBump.gain.setTargetAtTime(4+N.noise*5,ac.currentTime,.1);
+    clearInterval(crackleTimer);crackleTimer=null;
+    if(N.noise>.05)crackleTimer=setInterval(crackle,Math.max(90,420-N.noise*340));
+    applyAll();                      // шипение самой ленты тоже растёт
+  }
+}
+/* тряска: раз в кадр смещаем заголовки и таблички, амплитуда ∝ ШУМ */
+let shakeEls=[];
+function collectShake(){
+  shakeEls=[...document.querySelectorAll('h2,.hero h1,.hero .sub,.plate,nav .brand,.counter small,.lbl')].slice(0,40);
+}
+function shake(){
+  const n=N.noise;
+  if(n<.02){if(shakeEls.__dirty){shakeEls.forEach(e=>e.style.transform='');shakeEls.__dirty=false}return}
+  const A=n*n*7;
+  shakeEls.forEach((e,i)=>{
+    if(Math.random()<.55-n*.35)return;                 // не все сразу — рвано, как помеха
+    const x=(Math.random()-.5)*A, y=(Math.random()-.5)*A*.6,
+          sk=(Math.random()-.5)*n*1.6;
+    e.style.transform=`translate(${x.toFixed(2)}px,${y.toFixed(2)}px) skewX(${sk.toFixed(2)}deg)`;
+    if(n>.7&&Math.random()<.03)e.style.opacity=(.35+Math.random()*.65).toFixed(2);
+    else e.style.opacity='';
+  });
+  shakeEls.__dirty=true;
+}
+
+/* катушки крутит либо протяжка, либо твоя рука */
+function spinReels(){
+  if(!reelEls)reelEls=[...document.querySelectorAll('.reel .spin')];
+  if(!reelEls.length)return;
+  const nowMs=performance.now();
+  const dt=spinReels.__t?Math.min(.15,(nowMs-spinReels.__t)/1000):0;
+  spinReels.__t=nowMs;
+  const running=machine.classList.contains('run');
+  reelEls.forEach((el,i)=>{
+    if(!scrubbing&&(running||Math.abs(tapeRate)>.02)){
+      const degPerSec=(i?100:150)*(0.5+P.speed)*tapeRate;   // подающая крутится медленнее
+      reelAngle[i]+=degPerSec*dt;
+    }
+    el.style.transform=`rotate(${reelAngle[i].toFixed(2)}deg)`;
+  });
+}
+
+/* =========================================================
+   ПАЛЕЦ НА КАТУШКЕ
+   Держишь — лента встаёт и питч уезжает вниз. Крутишь по кругу —
+   протяжка идёт за рукой, можно подкрутить вперёд или назад.
+   ========================================================= */
+document.querySelectorAll('.reel').forEach((reel,ri)=>{
+  let ang=0,last=0,idle=null;
+  const centre=()=>{const r=reel.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}};
+  reel.addEventListener('pointerdown',e=>{
+    e.preventDefault();initAudio();
+    scrubbing=true;reel.classList.add('hold');
+    reel.setPointerCapture(e.pointerId);
+    const c=centre();ang=Math.atan2(e.clientY-c.y,e.clientX-c.x);last=performance.now();
+    tapeTarget=0;                                    // прижал — лента встала
+  });
+  reel.addEventListener('pointermove',e=>{
+    if(!scrubbing)return;
+    const c=centre(),a=Math.atan2(e.clientY-c.y,e.clientX-c.x),now=performance.now();
+    let d=a-ang; while(d>Math.PI)d-=Math.PI*2; while(d<-Math.PI)d+=Math.PI*2;
+    const dt=Math.max(16,now-last)/1000;
+    ang=a;last=now;
+    // картинка идёт за рукой один к одному, обе катушки вместе
+    const deg=d*180/Math.PI;
+    reelAngle[0]+=deg;reelAngle[1]+=deg*.66;
+    // угловая скорость руки → скорость протяжки, полтора оборота в секунду ≈ норма
+    tapeTarget=Math.max(-.8,Math.min(1.9,(d/dt)/(Math.PI*3)));
+    if(Math.abs(tapeTarget)<.05)tapeTarget=0;
+    tapeRate+=(tapeTarget-tapeRate)*.6;applyTapeRate();      // звук без задержки
+    clearTimeout(idle);
+    idle=setTimeout(()=>{if(scrubbing)tapeTarget=0},110);    // рука замерла — лента встала
+  });
+  const up=()=>{
+    if(!scrubbing)return;
+    scrubbing=false;clearTimeout(idle);
+    reel.classList.remove('hold');
+    tapeTarget=1;                                    // отпустил — плёнка разгоняется обратно
+  };
+  reel.addEventListener('pointerup',up);
+  reel.addEventListener('pointercancel',up);
+  reel.addEventListener('lostpointercapture',up);
+});
+
+/* =========================================================
+   VU METERS — needle ballistics
+   ========================================================= */
+/* на телефоне рисуем в полтора раза плотнее, а не в два — заметно легче */
+const DPR=()=>Math.min(window.devicePixelRatio||1, innerWidth<760?1.5:2);
+function setupCanvas(c){const r=c.getBoundingClientRect(),d=DPR();
+  c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);return c.getContext('2d')}
+const vuL=document.getElementById('vuL'),vuR=document.getElementById('vuR'),
+      scopeC=document.getElementById('scope');
+let gL,gR,gS;
+function fitAll(){gL=setupCanvas(vuL);gR=setupCanvas(vuR);gS=setupCanvas(scopeC)}
+addEventListener('resize',()=>{fitAll();gN=null;vuScale.L=vuScale.R=null});fitAll();
+
+const needle={L:{p:0,v:0},R:{p:0,v:0}};
+
+/* Шкала прибора не меняется — рисуем её один раз в закадровый холст
+   и потом только копируем. За кадр остаётся одна стрелка вместо
+   девяти делений с подписями и двух дуг.                            */
+const vuScale={};
+function bakeScale(c){
+  const W=c.width,H=c.height,off=document.createElement('canvas');
+  off.width=W;off.height=H;
+  const g=off.getContext('2d'),cx=W/2,cy=H*1.02,R=Math.min(W*.42,H*.85);
+  g.strokeStyle='rgba(20,19,18,.75)';g.lineWidth=1.6;
+  g.beginPath();g.arc(cx,cy,R,Math.PI*1.22,Math.PI*1.78);g.stroke();
+  g.font=`600 ${Math.round(H*.11)}px "Cousine", monospace`;g.textAlign='center';
+  [[-20,'-20'],[-10,'-10'],[-7,'-7'],[-5,'-5'],[-3,'-3'],[-1,'-1'],[0,'0'],[1,''],[3,'+3']]
+  .forEach(([db,txt])=>{
+    const t=(db+20)/23,a=Math.PI*1.22+t*(Math.PI*.56);
+    g.lineWidth=db>=0?2.4:1.2;
+    g.strokeStyle=db>=0?'rgba(20,19,18,.95)':'rgba(20,19,18,.6)';
+    g.beginPath();
+    g.moveTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);
+    g.lineTo(cx+Math.cos(a)*(R-H*.10),cy+Math.sin(a)*(R-H*.10));
+    g.stroke();
+    if(txt){
+      g.fillStyle=db>=0?'rgba(20,19,18,.95)':'rgba(20,19,18,.55)';
+      g.fillText(txt,cx+Math.cos(a)*(R-H*.22),cy+Math.sin(a)*(R-H*.22)+H*.04);
+    }
+  });
+  g.strokeStyle='rgba(20,19,18,.95)';g.lineWidth=4;
+  g.beginPath();g.arc(cx,cy,R+3,Math.PI*1.22+(20/23)*(Math.PI*.56),Math.PI*1.78);g.stroke();
+  g.font=`600 ${Math.round(H*.10)}px "Cousine", monospace`;
+  g.fillStyle='rgba(20,19,18,.5)';g.fillText('VU',cx,H*.52);
+  return off;
+}
+function drawVU(g,c,side){
+  const W=c.width,H=c.height,cx=W/2,cy=H*1.02,R=Math.min(W*.42,H*.85);
+  if(!vuScale[side]||vuScale[side].width!==W)vuScale[side]=bakeScale(c);
+  g.clearRect(0,0,W,H);
+  g.drawImage(vuScale[side],0,0);
+  const n=needle[side],a=Math.PI*1.22+n.p*(Math.PI*.56);
+  g.strokeStyle='rgba(20,19,18,1)';g.lineWidth=2.6;
+  g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.cos(a)*(R-H*.05),cy+Math.sin(a)*(R-H*.05));g.stroke();
+  g.fillStyle='rgba(20,19,18,1)';
+  g.beginPath();g.arc(cx,cy,4,0,7);g.fill();
+}
+const bufL=new Uint8Array(1024),bufR=new Uint8Array(1024),bufS=new Uint8Array(2048),spec=new Uint8Array(1024);
+function rms(an,arr){
+  if(!an)return 0;an.getByteTimeDomainData(arr);
+  let s=0;for(let i=0;i<arr.length;i++){const v=arr[i]/128-1;s+=v*v}
+  return Math.sqrt(s/arr.length);
+}
+
+/* scope modes */
+let mode='wave';
+document.querySelectorAll('.scope .sw button').forEach(b=>{
+  b.onclick=()=>{mode=b.dataset.mode;
+    document.querySelectorAll('.scope .sw button').forEach(x=>x.classList.toggle('act',x===b));
+    document.getElementById('scopeTag').textContent=
+      mode==='wave'?'ОСЦИЛЛОГРАФ — ВОЛНА':mode==='spec'?'АНАЛИЗАТОР — СПЕКТР':'ОСЦИЛЛОГРАФ — ФИГУРЫ ЛИССАЖУ';};
+});
+function drawScope(){
+  const W=scopeC.width,H=scopeC.height;
+  gS.clearRect(0,0,W,H);
+  gS.strokeStyle='rgba(20,19,18,.14)';gS.lineWidth=1;
+  for(let i=1;i<8;i++){gS.beginPath();gS.moveTo(W/8*i,0);gS.lineTo(W/8*i,H);gS.stroke()}
+  for(let i=1;i<4;i++){gS.beginPath();gS.moveTo(0,H/4*i);gS.lineTo(W,H/4*i);gS.stroke()}
+  gS.strokeStyle='rgba(20,19,18,.9)';gS.lineWidth=2;gS.beginPath();
+  if(mode==='spec'&&scopeAn&&(playing||seqOn)){
+    scopeAn.getByteFrequencyData(spec);
+    const n=64,bw=W/n;gS.fillStyle='rgba(20,19,18,.8)';
+    for(let i=0;i<n;i++){
+      const v=spec[Math.floor(Math.pow(i/n,1.6)*spec.length)]/255;
+      gS.fillRect(i*bw+1,H-v*H,bw-2,v*H);
+    }
+    return;
+  }
+  if(mode==='lis'&&scopeAn&&(playing||seqOn)){
+    scopeAn.getByteTimeDomainData(bufS);
+    for(let i=0;i<bufS.length-8;i+=2){
+      const x=W/2+(bufS[i]/128-1)*W*.42, y=H/2+(bufS[i+7]/128-1)*H*.42;
+      i?gS.lineTo(x,y):gS.moveTo(x,y);
+    }
+    gS.stroke();return;
+  }
+  if(scopeAn&&(playing||seqOn)){
+    scopeAn.getByteTimeDomainData(bufS);
+    for(let x=0;x<W;x+=2){
+      const v=bufS[Math.floor(x/W*bufS.length)]/128-1;
+      const y=H/2+v*H*.44;x?gS.lineTo(x,y):gS.moveTo(x,y);
+    }
+  }else{
+    for(let x=0;x<W;x+=4){const y=H/2+(Math.random()-.5)*2;x?gS.lineTo(x,y):gS.moveTo(x,y)}
+  }
+  gS.stroke();
+}
+
+/* main loop */
+let peakHold=0;
+/* приборы видны? если панель уехала за экран — не тратим кадры на отрисовку */
+let panelVisible=true;
+new IntersectionObserver(es=>{panelVisible=es.some(e=>e.isIntersecting)},{threshold:0})
+  .observe(document.getElementById('machine'));
+
+(function loop(){
+  requestAnimationFrame(loop);
+  const live=playing||seqOn||N.noise>.02;
+  if(seqOn)paintHead();
+  if(Math.abs(tapeRate-tapeTarget)>.0015){           // останов и разгон ленты
+    // за рукой идём мгновенно, сами по себе — тормозим и разгоняемся плавно
+    tapeRate+=(tapeTarget-tapeRate)*(scrubbing?.45:(tapeTarget<tapeRate?.075:.06));
+    applyTapeRate();
+  }
+  spinReels();
+  shake();
+  trailFade();
+  const rl=live?rms(analyserL,bufL):0, rr=live?rms(analyserR,bufR):0;
+  [['L',rl],['R',rr]].forEach(([s,r])=>{
+    const target=Math.min(1.05,Math.pow(r*3.2,.62)), n=needle[s];
+    n.v+=(target-n.p)*.18;n.v*=.72;n.p+=n.v;      // spring ballistics
+    n.p=Math.max(0,Math.min(1.12,n.p));
+  });
+  /* стрелки замерли и панель не видна — перерисовывать нечего */
+  const still=!live&&needle.L.p<.002&&needle.R.p<.002&&Math.abs(needle.L.v)<.002;
+  if(panelVisible&&!still){drawVU(gL,vuL,'L');drawVU(gR,vuR,'R');drawScope()}
+  drawMiniVU(Math.pow(Math.max(rl,rr)*3.2,.62));
+  const clipping=needle.L.p>.92||needle.R.p>.92;
+  if(clipping)peakHold=performance.now();
+  lamp('lp-clip',performance.now()-peakHold<420);
+
+  if(playing&&cur>=0){
+    const [m,s]=demos[cur].d.split(':').map(Number),total=m*60+s;
+    const el=(performance.now()-t0)/1000*(0.6+P.speed*.8);
+    if(el>=total){play((cur+1)%demos.length);return}
+    const b=ul.children[cur].querySelector('.bar b');
+    if(b)b.style.right=(100-el/total*100)+'%';
+    const nowMs=performance.now(), dt=lastFrame?Math.min(.2,(nowMs-lastFrame)/1000):0;
+    lastFrame=nowMs;
+    counter+=dt*(0.6+P.speed*.8)*tapeRate*10;      // лента идёт ровно настолько, насколько крутится
+    document.getElementById('ctr').textContent=(counter%1000).toFixed(1).padStart(5,'0');
+  }
+})();
+
+/* =========================================================
+   RHYTHM UNIT — lo-fi noise drum machine, 16 steps
+   ========================================================= */
+const D={tempo:.36,swing:.24,tone:.62,crush:.45,smash:.35,decay:.5,
+         verb:.26,echo:.18,etime:.3,ecrush:.3,stretch:0,level:.6,gate:0};
+/* доли для привязки эха к такту: [подпись, длительность в четвертях] */
+const DIVS=[['1/1',4],['1/2',2],['1/2T',4/3],['1/4.',1.5],['1/4',1],['1/4T',2/3],
+            ['1/8.',.75],['1/8',.5],['1/8T',1/3],['1/16',.25],['1/16T',1/6],['1/32',.125]];
+let echoSync=false;
+const divIdx=v=>Math.min(DIVS.length-1,Math.max(0,Math.round(v*(DIVS.length-1))));
+const dKnobsBase=[
+  {k:'tempo',name:'ТЕМП',   def:.36,detent:null,fmt:v=>Math.round(50+v*120)+' УД/МИН'},
+  {k:'swing',name:'СВИНГ',  def:.24,detent:0,   fmt:v=>Math.round(v*100)+'%'},
+  {k:'decay',name:'ЗАТУХАНИЕ',def:.5,detent:.5, fmt:v=>(.4+v*1.4).toFixed(2)+'×'},
+  {k:'stretch',name:'РАЗБРОС',def:0,detent:0,fmt:v=>v<.02?'ТОЧНО':'±'+Math.round(v*60)+'%'},
+  {k:'level',name:'УРОВЕНЬ',def:.6,detent:null,fmt:v=>Math.round(v*100)+'%'},
+];
+const dKnobsFx=[
+  {k:'tone', name:'ТЕМБР КИТА',def:.62,detent:null,fmt:v=>Math.round(180*Math.pow(60,v))+' ГЦ'},
+  {k:'crush',name:'БИТКРАШ',def:.45,detent:null,fmt:v=>(16-Math.round(v*14))+' БИТ'},
+  {k:'smash',name:'РАСПЛЮЩ',def:.35,detent:null,fmt:v=>Math.round(v*100)+'%'},
+  {k:'verb', name:'РЕВЕРБ',  def:.26,detent:null,fmt:v=>Math.round(v*100)+'%'},
+  {k:'gate', name:'ГЕЙТ ХВОСТА',def:0,detent:0,
+   fmt:v=>v<.02?'ВЫКЛ':Math.round((.05+v*.4)*1000)+' МС'},
+  {k:'echo', name:'ЭХО',     def:.18,detent:0,   fmt:v=>Math.round(v*100)+'%'},
+  {k:'etime',name:'ВРЕМЯ ЭХА',def:.3,detent:null,
+   fmt:v=>echoSync?DIVS[divIdx(v)][0]+' ТАКТА':Math.round((.03+v*.57)*1000)+' МС'},
+  {k:'ecrush',name:'КРАШ ЭХА',def:.3,detent:0,fmt:v=>v<.02?'ЧИСТО':(16-Math.round(v*14))+' БИТ'},
+];
+const bpm=()=>50+D.tempo*120;
+const decayMul=()=>.4+D.decay*1.4;
+
+const voices=[
+  {id:'kick', name:'БОЧКА / ПОЛ'},
+  {id:'snare',name:'МАЛЫЙ / ЖЕСТЬ'},
+  {id:'hat',  name:'ХЭТ / СТАТИКА'},
+  {id:'rim',  name:'РИМ / БОЛТ'},
+  {id:'tape', name:'ЛЕНТА / ВЗДОХ'},
+  {id:'mic',  name:'СЕМПЛ'},
+];
+/* ---- пресеты: шаг = 1/16, 1 — обычный удар, 2 — акцент ----
+   сгруппированы по школам; это не цитаты конкретных треков,
+   а типовые рисунки, на которых эти сцены стоят               */
+const PRESETLIST=[
+ ['ИНДАСТРИАЛ','МЁРТВАЯ КОМНАТА',{
+   kick:[2,0,0,0,0,0,1,0,0,0,2,0,0,0,0,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,1],
+   hat:[1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0],  rim:[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}],
+ ['ИНДАСТРИАЛ','МАШИННЫЙ ЗАЛ',{
+   kick:[2,0,0,1,0,0,2,0,0,1,0,0,2,0,0,0], snare:[0,0,0,0,2,0,0,1,0,0,0,0,2,0,1,0],
+   hat:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1],  rim:[0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1],
+   tape:[0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0], fx:[0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0]}],
+ ['ИНДАСТРИАЛ','МОЛОТ',{
+   kick:[2,0,2,0,2,0,2,0,2,0,2,0,2,0,2,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],
+   hat:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  rim:[0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],
+   tape:[0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0], fx:[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1]}],
+ ['ИНДАСТРИАЛ','ПОЛТЕМПА',{
+   kick:[2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], snare:[0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0],
+   hat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],  rim:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+   tape:[0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}],
+ ['ИНДАСТРИАЛ','СЛОМАННЫЙ',{
+   kick:[2,0,0,0,0,1,0,0,2,0,0,1,0,0,0,0], snare:[0,0,0,2,0,0,0,0,0,0,2,0,0,1,0,0],
+   hat:[0,1,0,1,0,1,2,1,0,1,0,1,0,1,0,2],  rim:[0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0],
+   tape:[0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0], fx:[0,0,1,0,0,0,0,1,0,0,1,0,0,0,0,1]}],
+ ['ТАНЦПОЛ','ЧЕТЫРЕ НА ПОЛУ',{
+   kick:[2,0,0,0,2,0,0,0,2,0,0,0,2,0,0,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],
+   hat:[0,0,2,0,0,0,2,0,0,0,2,0,0,0,2,0],  rim:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}],
+ ['ТАНЦПОЛ','ЭЛЕКТРО-БОДИ',{
+   kick:[2,0,0,0,2,0,0,1,2,0,0,0,2,0,1,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],
+   hat:[0,0,2,0,0,0,2,0,0,0,2,0,0,1,2,1],  rim:[0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0]}],
+ ['ТАНЦПОЛ','ТЕХНО',{
+   kick:[2,0,0,0,2,0,0,0,2,0,0,0,2,0,0,0], snare:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   hat:[1,0,2,1,1,0,2,0,1,0,2,1,1,0,2,1],  rim:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,1],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0], fx:[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0]}],
+ ['ТАНЦПОЛ','ХАУС',{
+   kick:[2,0,0,0,2,0,0,0,2,0,0,0,2,0,0,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],
+   hat:[0,0,1,0,0,0,2,0,0,0,1,0,0,0,2,1],  rim:[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}],
+ ['ТАНЦПОЛ','ДИСКО-ПАНК',{
+   kick:[2,0,0,0,1,0,0,0,2,0,0,0,1,0,1,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],
+   hat:[1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1],  rim:[0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], fx:[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0]}],
+ ['ПОСТПАНК','ТРАЙБЛ',{
+   kick:[2,0,1,0,0,0,2,0,1,0,0,0,2,0,0,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],
+   hat:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  rim:[1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}],
+ ['ПОСТПАНК','ХОЛОДНАЯ ВОЛНА',{
+   kick:[2,0,0,0,0,0,1,0,2,0,0,0,0,0,0,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,1],
+   hat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1],  rim:[0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}],
+ ['ПОСТПАНК','ГАРАЖ',{
+   kick:[2,0,0,1,0,0,2,0,0,0,2,0,0,1,0,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,2],
+   hat:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],  rim:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0]}],
+ ['ПОСТПАНК','МАРШ',{
+   kick:[2,0,0,0,1,0,0,0,2,0,0,0,1,0,0,0], snare:[0,1,1,0,2,1,1,0,0,1,1,0,2,1,1,1],
+   hat:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],  rim:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}],
+ ['СИНТИПОП','ЛИНН-БИТ',{
+   kick:[2,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],
+   hat:[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],  rim:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}],
+ ['СИНТИПОП','ХЛОПОК НА ДВА И ЧЕТЫРЕ',{
+   kick:[2,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],
+   hat:[0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1],  rim:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}],
+ ['СИНТИПОП','МОТОРИК',{
+   kick:[2,0,0,0,1,0,0,0,2,0,0,0,1,0,0,0], snare:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1],
+   hat:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],  rim:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}],
+ ['ПРОЧЕЕ','БРЕЙКБИТ',{
+   kick:[2,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0], snare:[0,0,0,0,2,0,0,1,0,0,0,2,0,0,1,0],
+   hat:[1,1,2,1,1,1,2,1,1,1,2,1,1,1,2,1],  rim:[0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1], fx:[0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0]}],
+ ['ПРОЧЕЕ','БУМБАП',{
+   kick:[2,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0], snare:[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],
+   hat:[1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0],  rim:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}],
+ ['ПРОЧЕЕ','ДАБ',{
+   kick:[2,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0], snare:[0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0],
+   hat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],  rim:[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0], fx:[0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0]}],
+ ['ПРОЧЕЕ','ПОХОРОНЫ',{
+   kick:[2,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], snare:[0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0],
+   hat:[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],  rim:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   tape:[0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2]}],
+ ['ПРОЧЕЕ','ПУЛЬС',{
+   kick:[2,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0], snare:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   hat:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],  rim:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   tape:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2], fx:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]}],
+];
+const presets={};
+PRESETLIST.forEach(([g,n,pat])=>presets[n]=pat);
+
+/* в пресетах 0/1/2 — разворачиваем в велосити 0..127 */
+const LEGACY=[0,78,112];
+function expand(o){const r={};for(const k in o)
+  r[k]=o[k].map(v=>k==='fx'?(v?127:0):(v<=2?LEGACY[v]:Math.min(127,v|0)));return r}
+const ACC=104;                                   // с этого значения удар считается акцентом
+let lastVel=96;
+const emptyPat=()=>({kick:Array(16).fill(0),snare:Array(16).fill(0),hat:Array(16).fill(0),
+  rim:Array(16).fill(0),tape:Array(16).fill(0),
+  mic:Array(16).fill(0),fx:Array(16).fill(0)});
+const banks={A:Object.assign(emptyPat(),expand(presets['МЁРТВАЯ КОМНАТА'])),
+             B:emptyPat(),C:emptyPat(),D:emptyPat()};
+let curBank='A', chainOn=false, chainPos=0;
+let pattern=banks[curBank];
+const chainList=()=>{
+  const raw=(document.getElementById('chainStr').value||'A').toUpperCase().match(/[ABCD]/g);
+  return raw&&raw.length?raw:['A'];
+};
+/* дорожка эффектов — не голос: на её шагах эффекты дёргаются сами */
+const FXROW={id:'fx',name:'ЭФФЕКТЫ / СЛУЧАЙНО'};
+/* раскладка по физическим клавишам — работает и на русской раскладке */
+const KEYMAP={KeyA:'kick',KeyS:'snare',KeyD:'hat',KeyF:'rim',KeyG:'tape',KeyH:'mic',KeyJ:'fx'};
+const KEYMAP_INV={};Object.entries(KEYMAP).forEach(([k,v])=>KEYMAP_INV[v]=k.slice(3));
+const FXON={tone:1,crush:1,smash:1,verb:1,echo:1};   // обход каждого блока
+const PAN={kick:0,snare:0,hat:.22,rim:-.3,tape:.14,mic:0};   // панорама голосов, -1..1
+const FXKINDS=['ФИЛЬТР','ЗАИКАНИЕ','ЭХО','КРАШ','РЕВЕРБ','ПРОВАЛ'];
+const muted={};
+
+/* ---- UI ---- */
+const seqBox=document.getElementById('seq');
+let stepCells=[],headStep=-1;   // ячейки по индексу шага — чтобы не искать их на каждом шаге
+function paintSeq(){
+  stepCells=[];headStep=-1;
+  seqBox.innerHTML=`
+    <div class="sruler"><span></span><span></span><span></span><div class="steps">
+      ${Array.from({length:16},(_,i)=>`<span class="${i%4===0?'b':''}">${i%4===0?i+1:'·'}</span>`).join('')}
+    </div></div>`+
+    [...voices,FXROW].map(v=>`
+      <div class="srow ${v.id==='fx'?'fxrow':''} ${v.id==='mic'&&!micBuf?'empty':''}" data-v="${v.id}">
+        <button class="vname" data-aud="${v.id}" data-key="${(KEYMAP_INV[v.id]||'')}">${v.name}</button>
+        <button class="vmute ${muted[v.id]?'on':''}" data-mute="${v.id}">M</button>
+        ${v.id==='fx'?'<span></span>':
+          `<div class="pan ${Math.abs(PAN[v.id]||0)<.02?'mid':''}" data-pan="${v.id}"
+                title="панорама"><b style="left:${(50+(PAN[v.id]||0)*48).toFixed(1)}%"></b></div>`}
+        <div class="steps">
+          ${(pattern[v.id]||Array(16).fill(0)).map((s,i)=>`<button class="st ${s?'on':''} ${s>=ACC?'acc':''}" style="--v:${(s/127).toFixed(3)}" data-v="${v.id}" data-i="${i}" title="${s||''}"></button>`).join('')}
+        </div>
+      </div>`).join('');
+}
+paintSeq();
+/* ---- велосити: одна клетка, три жеста ---- */
+const badge=document.createElement('div');badge.className='velbadge';document.body.appendChild(badge);
+function paintStep(st,val){
+  st.classList.toggle('on',val>0);
+  st.classList.toggle('acc',val>=ACC);
+  st.style.setProperty('--v',(val/127).toFixed(3));
+  st.title=val||'';
+}
+function showBadge(st,val){
+  const r=st.getBoundingClientRect();
+  badge.textContent=val;badge.style.left=(r.left+r.width/2)+'px';badge.style.top=r.top+'px';
+  badge.classList.add('show');
+  clearTimeout(badge.__t);badge.__t=setTimeout(()=>badge.classList.remove('show'),700);
+}
+function hitStep(v,i,vel){
+  initDrums();ac.resume();
+  if(v==='fx')fxFire(kit,ac,ac.currentTime+.02);
+  else trigger(v,ac.currentTime,vel);
+}
+seqBox.addEventListener('pointerdown',e=>{
+  const st=e.target.closest('.st'); if(!st)return;
+  initAudio();
+  const v=st.dataset.v,i=+st.dataset.i;
+  if(!Array.isArray(pattern[v]))pattern[v]=Array(16).fill(0);
+  const sv=pattern[v][i],sy=e.clientY;
+  if(v==='fx'){                                  // эффекты — только вкл/выкл, без громкости
+    const val=sv?0:127;
+    pattern[v][i]=val;paintStep(st,val);
+    if(val)hitStep(v,i,val);
+    return;
+  }
+  let dragged=false;
+  st.setPointerCapture(e.pointerId);st.classList.add('vdrag');
+  const move=ev=>{
+    const dy=sy-ev.clientY;
+    if(!dragged&&Math.abs(dy)<4)return;
+    dragged=true;
+    const base=sv||lastVel;
+    const val=Math.max(1,Math.min(127,Math.round(base+dy*(ev.shiftKey?.35:1.1))));
+    pattern[v][i]=val;lastVel=val;paintStep(st,val);showBadge(st,val);
+  };
+  const up=()=>{
+    st.removeEventListener('pointermove',move);st.removeEventListener('pointerup',up);
+    st.classList.remove('vdrag');
+    if(!dragged){                                     // короткий клик — просто вкл/выкл
+      const val=sv?0:lastVel;
+      pattern[v][i]=val;paintStep(st,val);
+      if(val){showBadge(st,val);hitStep(v,i,val)}
+    }else if(pattern[v][i])hitStep(v,i,pattern[v][i]);
+  };
+  st.addEventListener('pointermove',move);st.addEventListener('pointerup',up);
+});
+seqBox.addEventListener('wheel',e=>{
+  const st=e.target.closest('.st'); if(!st)return;
+  if(st.dataset.v==='fx')return;                 // громкости у эффектов нет
+  e.preventDefault();
+  const v=st.dataset.v,i=+st.dataset.i;
+  if(!Array.isArray(pattern[v]))pattern[v]=Array(16).fill(0);
+  const val=Math.max(0,Math.min(127,(pattern[v][i]||lastVel)-Math.sign(e.deltaY)*(e.shiftKey?1:5)));
+  pattern[v][i]=val; if(val)lastVel=val;
+  paintStep(st,val);showBadge(st,val);
+},{passive:false});
+
+seqBox.addEventListener('click',e=>{
+  if(e.target.closest('.st'))return;
+  const aud=e.target.closest('[data-aud]');
+  if(aud){initAudio();ac.resume();
+    if(aud.dataset.aud==='fx'){initDrums();fxFire(kit,ac,ac.currentTime+.02)}
+    else trigger(aud.dataset.aud,ac.currentTime,112);
+    aud.classList.add('hit');setTimeout(()=>aud.classList.remove('hit'),120);return}
+  const m=e.target.closest('[data-mute]');
+  if(m){const v=m.dataset.mute;muted[v]=!muted[v];m.classList.toggle('on',muted[v])}
+});
+
+/* выпадающий список с группами по школам + шаг стрелками */
+const presetBox=document.getElementById('presets');
+const groups=[...new Set(PRESETLIST.map(x=>x[0]))];
+presetBox.innerHTML=
+  '<span class="lbl" style="margin-right:2px">РИТМ</span>'+
+  '<button id="pprev" title="предыдущий">◀</button>'+
+  '<select id="psel">'+groups.map(g=>
+    `<optgroup label="${g}">`+PRESETLIST.filter(x=>x[0]===g)
+      .map(x=>`<option value="${x[1]}">${x[1]}</option>`).join('')+'</optgroup>').join('')+
+  '</select>'+
+  '<button id="pnext" title="следующий">▶</button>';
+const psel=document.getElementById('psel');
+function loadPreset(name){
+  pattern=banks[curBank]=Object.assign(emptyPat(),expand(presets[name]));
+  paintSeq();cacheCells();typeInk(seqBox);
+  psel.value=name;
+}
+psel.onchange=()=>loadPreset(psel.value);
+const stepPreset=d=>{
+  const names=PRESETLIST.map(x=>x[1]);
+  const i=(names.indexOf(psel.value)+d+names.length)%names.length;
+  loadPreset(names[i]);
+};
+document.getElementById('pprev').onclick=()=>stepPreset(-1);
+document.getElementById('pnext').onclick=()=>stepPreset(1);
+psel.value='МЁРТВАЯ КОМНАТА';
+document.getElementById('dclear').onclick=()=>{
+  [...voices,FXROW].forEach(v=>pattern[v.id]=Array(16).fill(0));paintSeq();cacheCells();typeInk(seqBox);
+};
+document.getElementById('drand').onclick=()=>{
+  const dens={kick:.22,snare:.14,hat:.5,rim:.12,tape:.05,fx:.12};
+  [...voices,FXROW].forEach(v=>pattern[v.id]=Array.from({length:16},()=>
+    Math.random()<dens[v.id]?(v.id==='fx'?127:Math.round(52+Math.random()*75)):0));
+  paintSeq();cacheCells();typeInk(seqBox);
+};
+
+/* ---- тракт кита: свой тембр, биткраш, расплющ, эхо и реверб ---- */
+let kit=null;
+function crushCurve(bits){
+  const n=2048,c=new Float32Array(n),lv=Math.pow(2,bits);
+  for(let i=0;i<n;i++){const x=i*2/n-1;c[i]=Math.round(x*lv)/lv}
+  return c;
+}
+function smashCurve(k){
+  const n=1024,c=new Float32Array(n),a=k*90+.001;
+  for(let i=0;i<n;i++){const x=i*2/n-1;c[i]=Math.tanh(x*(1+a))}
+  return c;
+}
+const toneHz =()=>180*Math.pow(60,D.tone);     // 180 Гц … 10.8 кГц
+const gateSec=()=>.05+D.gate*.4;
+const echoSec=()=>echoSync?(60/bpm())*DIVS[divIdx(D.etime)][1]:.03+D.etime*.57;
+
+/* буфер шума и импульс комнаты — свои для каждого контекста,
+   чтобы офлайн-рендер в файл звучал так же, как вживую */
+const noiseBufs=new WeakMap(), irCache=new WeakMap();
+function noiseBufFor(ctx){
+  let b=noiseBufs.get(ctx); if(b)return b;
+  const L=Math.floor(2*ctx.sampleRate);
+  b=ctx.createBuffer(1,L,ctx.sampleRate);
+  const ch=b.getChannelData(0);
+  for(let i=0;i<L;i++)ch[i]=Math.random()*2-1;
+  noiseBufs.set(ctx,b); return b;
+}
+function makeIR(ctx){
+  let ir=irCache.get(ctx); if(ir)return ir;
+  const L=Math.floor(1.9*ctx.sampleRate);
+  ir=ctx.createBuffer(2,L,ctx.sampleRate);
+  for(let c=0;c<2;c++){
+    const d=ir.getChannelData(c); let lp=0;
+    for(let i=0;i<L;i++){
+      lp=lp*.74+(Math.random()*2-1)*.26;       // тёмный бетонный хвост
+      d[i]=lp*Math.pow(1-i/L,2.6);
+    }
+  }
+  irCache.set(ctx,ir); return ir;
+}
+/* сборка тракта в любом контексте: живом или офлайновом */
+function buildKit(ctx,dest){
+  const K={};
+  K.bus=ctx.createGain();
+  // у каждого голоса свой панорамщик перед общей шиной
+  K.pan={};
+  voices.forEach(v=>{
+    let n;
+    if(ctx.createStereoPanner){n=ctx.createStereoPanner();n.pan.value=PAN[v.id]||0}
+    else n=ctx.createGain();                       // старые движки — просто сквозной узел
+    n.connect(K.bus);K.pan[v.id]=n;
+  });
+  K.crush=ctx.createWaveShaper();K.crush.curve=crushCurve(16-Math.round(D.crush*14));
+  K.smash=ctx.createWaveShaper();K.smash.curve=smashCurve(D.smash);K.smash.oversample='2x';
+  K.tone=ctx.createBiquadFilter();K.tone.type='lowpass';K.tone.frequency.value=toneHz();K.tone.Q.value=1.05;
+  K.out=ctx.createGain();K.out.gain.value=D.level*.9;
+  K.bus.connect(K.crush).connect(K.smash).connect(K.tone);
+  // после тембра сигнал делится: чистая ветка и ветка жёсткого краша (для глитчей)
+  K.post=ctx.createGain();
+  K.dry=ctx.createGain();K.dry.gain.value=1;
+  K.hard=ctx.createWaveShaper();K.hard.curve=crushCurve(3);
+  K.hardMix=ctx.createGain();K.hardMix.gain.value=0;
+  K.tone.connect(K.dry).connect(K.post);
+  K.tone.connect(K.hard).connect(K.hardMix).connect(K.post);
+  K.post.connect(K.out);
+  // эхо: петля с завалом верха — каждый повтор глуше предыдущего
+  K.dl=ctx.createDelay(1.6);K.dl.delayTime.value=echoSec();
+  K.send=ctx.createGain();K.send.gain.value=D.echo*.9;
+  K.fb=ctx.createGain();K.fb.gain.value=.18+D.echo*.58;
+  K.dlF=ctx.createBiquadFilter();K.dlF.type='lowpass';K.dlF.frequency.value=2400;
+  // биткрашер внутри петли: каждый повтор осыпается сильнее предыдущего
+  K.eCrush=ctx.createWaveShaper();K.eCrush.curve=crushCurve(16-Math.round(D.ecrush*14));
+  K.post.connect(K.send).connect(K.dl);
+  K.dl.connect(K.dlF).connect(K.eCrush).connect(K.fb).connect(K.dl);
+  K.dl.connect(K.out);
+  // реверб на свёртке с самодельным импульсом
+  K.cv=ctx.createConvolver();K.cv.buffer=makeIR(ctx);
+  K.verb=ctx.createGain();K.verb.gain.value=D.verb*.9;
+  K.gate=ctx.createGain();K.gate.gain.value=1;      // ворота на хвосте реверба
+  K.post.connect(K.verb).connect(K.cv).connect(K.gate).connect(K.out);
+  K.out.connect(dest);
+  return K;
+}
+function initDrums(){ initAudio(); if(!kit)kit=buildKit(ac,limiter); }
+/* базовые значения — одни и те же для живого тракта и для глитчей */
+const baseTone =()=>FXON.tone ?toneHz():20000;
+const baseSend =()=>FXON.echo ?D.echo*.9:0;
+const baseFb   =()=>FXON.echo ?.18+D.echo*.58:0;
+const baseVerb =()=>FXON.verb ?D.verb*.9:0;
+const baseOut  =()=>D.level*.9;
+function applyDrums(){
+  if(!kit)return;
+  const t=ac.currentTime;
+  kit.crush.curve=FXON.crush?crushCurve(16-Math.round(D.crush*14)):null;   // null = сквозной проход
+  kit.smash.curve=FXON.smash?smashCurve(D.smash):null;
+  kit.eCrush.curve=D.ecrush<.02?null:crushCurve(16-Math.round(D.ecrush*14));
+  kit.tone.frequency.setTargetAtTime(baseTone(),t,.03);
+  kit.dl.delayTime.setTargetAtTime(echoSec(),t,.08);
+  if(echoSync&&dApi&&dApi.etime)dApi.etime.render();
+  kit.send.gain.setTargetAtTime(baseSend(),t,.03);
+  kit.fb.gain.setTargetAtTime(baseFb(),t,.03);
+  kit.verb.gain.setTargetAtTime(baseVerb(),t,.03);
+  kit.out.gain.setTargetAtTime(baseOut(),t,.03);
+  kit.dry.gain.setTargetAtTime(1,t,.03);
+  voices.forEach(v=>{const n=kit.pan[v.id];
+    if(n&&n.pan)n.pan.setTargetAtTime(PAN[v.id]||0,t,.02)});
+  if(D.gate<.02)kit.gate.gain.setTargetAtTime(1,t,.02);   // гейт выключен — ворота настежь
+  kit.hardMix.gain.setTargetAtTime(0,t,.03);
+  document.getElementById('crushTxt').textContent=
+    FXON.crush?(16-Math.round(D.crush*14))+' БИТ':'ОБХОД';
+}
+
+/* ---- глитч эффектов: одно случайное событие, целиком на автоматизации,
+        поэтому одинаково работает вживую и в офлайн-рендере в файл ---- */
+function fxFire(K,ctx,t){
+  if(!K)return;
+  const st=60/bpm()/4, len=st*(.8+Math.random()*1.4), accent=Math.random()<.35;
+  const kind=FXKINDS[Math.floor(Math.random()*FXKINDS.length)];
+  const jump=(param,val,back,at=t,ret=t+len)=>{
+    param.cancelScheduledValues(at);
+    param.setValueAtTime(val,at);
+    param.setValueAtTime(back,ret);
+  };
+  if(kind==='ФИЛЬТР'){
+    const lo=200+Math.random()*500;
+    K.tone.frequency.cancelScheduledValues(t);
+    K.tone.frequency.setValueAtTime(baseTone(),t);
+    K.tone.frequency.exponentialRampToValueAtTime(lo,t+len*.18);
+    K.tone.frequency.exponentialRampToValueAtTime(baseTone(),t+len);
+  }
+  else if(kind==='ЗАИКАНИЕ'){
+    jump(K.dl.delayTime,.018+Math.random()*.05,echoSec());
+    jump(K.fb.gain,.86,baseFb());
+    jump(K.send.gain,.95,baseSend());
+  }
+  else if(kind==='ЭХО'){
+    jump(K.send.gain,.9,baseSend(),t,t+len*1.5);
+    jump(K.fb.gain,.62+Math.random()*.25,baseFb(),t,t+len*1.5);
+  }
+  else if(kind==='КРАШ'){
+    jump(K.hardMix.gain,1,0,t,t+len*.7);
+    jump(K.dry.gain,0,1,t,t+len*.7);
+  }
+  else if(kind==='РЕВЕРБ'){
+    jump(K.verb.gain,.95,baseVerb(),t,t+len*1.6);
+  }
+  else if(kind==='ПРОВАЛ'){
+    jump(K.out.gain,.0001,baseOut(),t,t+len*(accent?.6:.35));
+  }
+  return kind;
+}
+
+/* ---- голоса. Собираются в переданном контексте, поэтому одинаково
+        звучат вживую и при рендере в файл ---- */
+function voice(ctx,K,id,t,vel,dm){
+  const accent=vel>=ACC, A=.28+.72*(Math.min(127,vel)/127), bus=(K.pan&&K.pan[id])||K.bus;
+  /* ГЕЙТ: удар распахивает ворота на хвосте реверба и тут же захлопывает —
+     хвост обрубается на полуслове, тот самый гейтед-реверб */
+  if(D.gate>.02&&K.gate){
+    const hold=gateSec()*(accent?1.35:1);
+    K.gate.gain.cancelScheduledValues(t);
+    K.gate.gain.setValueAtTime(1,t);
+    K.gate.gain.setValueAtTime(1,t+hold);
+    K.gate.gain.setTargetAtTime(.0001,t+hold,.014);
+  }
+  /* РАЗБРОС: у каждого удара свой коэффициент растяжения.
+     rr>1 — выше и короче, rr<1 — ниже и длиннее, как перетянутый семпл */
+  const R=D.stretch, rr=1+(Math.random()-.5)*R*1.3;
+  dm=dm/rr;
+  const noise=dur=>{const s=ctx.createBufferSource();s.buffer=noiseBufFor(ctx);
+    s.loop=true;s.playbackRate.value=rr;s.start(t);s.stop(t+dur+.05);return s};
+  const env=(peak,dur,curve=.008)=>{const g=ctx.createGain();
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+curve);
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur);return g};
+
+  if(id==='kick'){
+    const o=ctx.createOscillator();o.type='sine';
+    o.frequency.setValueAtTime(155*rr,t);
+    o.frequency.exponentialRampToValueAtTime(41*rr,t+.09*dm);
+    o.connect(env(.95*A,.42*dm,.004)).connect(bus);o.start(t);o.stop(t+.5*dm);
+    const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=1800;
+    noise(.02).connect(f).connect(env(.28*A,.02)).connect(bus);
+  }
+  if(id==='snare'){
+    const f=ctx.createBiquadFilter();f.type='bandpass';
+    f.frequency.value=(1500+Math.random()*400)*rr;f.Q.value=.8;
+    noise(.3*dm).connect(f).connect(env(.5*A,.19*dm)).connect(bus);
+    const o=ctx.createOscillator();o.type='triangle';o.frequency.setValueAtTime(196*rr,t);
+    o.frequency.exponentialRampToValueAtTime(120*rr,t+.1*dm);
+    o.connect(env(.28*A,.13*dm)).connect(bus);o.start(t);o.stop(t+.2*dm);
+  }
+  if(id==='hat'){
+    const dur=(accent?.24:.055)*dm;
+    const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=6800*rr;
+    const f2=ctx.createBiquadFilter();f2.type='bandpass';f2.frequency.value=9200;f2.Q.value=.5;
+    noise(dur).connect(f).connect(f2).connect(env(.24*(accent?1:.75),dur,.002)).connect(bus);
+  }
+  if(id==='rim'){
+    const o=ctx.createOscillator();o.type='square';o.frequency.value=1720*rr;
+    const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=1900;f.Q.value=6;
+    o.connect(f).connect(env(.3*A,.045*dm,.001)).connect(bus);o.start(t);o.stop(t+.08*dm);
+    noise(.012).connect(env(.2*A,.012,.001)).connect(bus);
+  }
+  if(id==='tape'){
+    const dur=.5*dm,f=ctx.createBiquadFilter();f.type='lowpass';f.Q.value=7;
+    f.frequency.setValueAtTime(4200*rr,t);f.frequency.exponentialRampToValueAtTime(180*rr,t+dur);
+    noise(dur).connect(f).connect(env(.4*A,dur,.02)).connect(bus);
+  }
+}
+function trigger(id,t,vel){
+  initDrums();
+  if(muted[id])return;
+  voice(ac,kit,id,t,vel,decayMul());
+}
+
+/* ---- микрофон: пишем короткий семпл и вешаем его на дорожку ---- */
+async function recordMic(btn){
+  try{
+    initAudio();
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{
+      echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    const rec=new MediaRecorder(stream), chunks=[];
+    rec.ondataavailable=e=>chunks.push(e.data);
+    rec.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      try{
+        const ab=await new Blob(chunks).arrayBuffer();
+        micBuf=await ac.decodeAudioData(ab);
+        flash(btn,'СЕМПЛ ЕСТЬ ✓');
+        const row=document.querySelector('.srow[data-v=\"mic\"]');
+        if(row)row.classList.remove('empty');
+      }catch(err){flash(btn,'НЕ ВЫШЛО')}
+    };
+    rec.start();micRec=rec;
+    let left=14;                                    // 1.4 секунды с отсчётом
+    btn.textContent='● ЗАПИСЬ 1.4';
+    const tick=setInterval(()=>{
+      left--;btn.textContent='● ЗАПИСЬ '+(left/10).toFixed(1);
+      if(left<=0){clearInterval(tick);rec.stop();micRec=null}
+    },100);
+  }catch(e){flash(btn,'НЕТ ДОСТУПА')}
+}
+
+/* ---- рендер паттерна в WAV: офлайновый контекст считает быстрее реального времени ---- */
+function saveBlob(blob,name){
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+function flash(btn,txt){
+  const old=btn.__old||btn.textContent; btn.__old=old;
+  btn.textContent=txt;
+  clearTimeout(btn.__ft); btn.__ft=setTimeout(()=>{btn.textContent=old;btn.disabled=false},1600);
+}
+function encodeWav(buf){
+  const nch=buf.numberOfChannels,len=buf.length,sr=buf.sampleRate;
+  const ab=new ArrayBuffer(44+len*nch*2),v=new DataView(ab);
+  const wr=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  wr(0,'RIFF');v.setUint32(4,36+len*nch*2,true);wr(8,'WAVE');wr(12,'fmt ');
+  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,nch,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*nch*2,true);v.setUint16(32,nch*2,true);
+  v.setUint16(34,16,true);wr(36,'data');v.setUint32(40,len*nch*2,true);
+  const chs=[];for(let c=0;c<nch;c++)chs.push(buf.getChannelData(c));
+  let off=44;
+  for(let i=0;i<len;i++)for(let c=0;c<nch;c++){
+    const x=Math.max(-1,Math.min(1,chs[c][i]));
+    v.setInt16(off,x<0?x*32768:x*32767,true);off+=2;
+  }
+  return new Blob([ab],{type:'audio/wav'});
+}
+/* при включённой ЦЕПИ экспортируется вся песня, иначе текущий банк ×4 */
+const exportBars=()=>chainOn?chainList().map(b=>banks[b]):[pattern,pattern,pattern,pattern];
+function renderWav(){
+  const bars=exportBars(), loops=bars.length;
+  const st=60/bpm()/4, sr=44100, dur=st*16*loops+2.6;
+  const off=new OfflineAudioContext(2,Math.ceil(sr*dur),sr);
+  const K=buildKit(off,off.destination), dm=decayMul();
+  for(let l=0;l<loops;l++){const pattern=bars[l];for(let s=0;s<16;s++){
+    const t=.08+(l*16+s)*st+((s%2)?st*D.swing*.55:0)+(Math.random()-.5)*st*.16*D.stretch;
+    voices.forEach(v=>{const arr=pattern[v.id];const val=arr?arr[s]:0;
+      if(val&&!muted[v.id])voice(off,K,v.id,t,val,dm)});
+    if(pattern.fx&&pattern.fx[s]&&!muted.fx)fxFire(K,off,t);
+  }}
+  return off.startRendering();
+}
+/* ---- экспорт в MIDI: формат 0, канал 10, 96 тиков на четверть ---- */
+function midiBlob(){
+  const bars=exportBars(), loops=bars.length;
+  const PPQ=96, stepT=PPQ/4;
+  const note={kick:36,snare:38,hat:42,rim:37,tape:49,mic:39}; // ноты GM-барабанов
+  const ev=[];
+  for(let l=0;l<loops;l++){const pattern=bars[l];for(let s=0;s<16;s++){
+    const base=(l*16+s)*stepT+((s%2)?Math.round(stepT*D.swing*.55):0);
+    voices.forEach(v=>{
+      const arr=pattern[v.id]; const val=arr?arr[s]:0;
+      if(!val||muted[v.id])return;
+      const n=(v.id==='hat'&&val>=ACC)?46:note[v.id];  // громкий хэт пишется как открытый
+      ev.push({t:base,      d:[0x99,n,Math.max(1,Math.min(127,val))]});
+      ev.push({t:base+(v.id==='hat'?6:14),d:[0x89,n,0]});
+    });
+  }}
+  ev.sort((a,b)=>a.t-b.t||(a.d[0]&0xf0)-(b.d[0]&0xf0));
+  const vlq=n=>{const b=[n&0x7f];n=Math.floor(n/128);
+    while(n>0){b.unshift((n&0x7f)|0x80);n=Math.floor(n/128)}return b};
+  const body=[];
+  const us=Math.round(60000000/bpm());
+  body.push(0,0xFF,0x51,0x03,(us>>16)&255,(us>>8)&255,us&255);   // темп
+  const nm=[...'CHERNY SHUM'].map(c=>c.charCodeAt(0));
+  body.push(0,0xFF,0x03,nm.length,...nm);   // имя дорожки — длина считается, а не зашита
+  let last=0;
+  ev.forEach(e=>{body.push(...vlq(e.t-last),...e.d);last=e.t});
+  body.push(0,0xFF,0x2F,0x00);                                   // конец дорожки
+  const L=body.length;
+  const bytes=[0x4D,0x54,0x68,0x64,0,0,0,6,0,0,0,1,(PPQ>>8)&255,PPQ&255,
+               0x4D,0x54,0x72,0x6B,(L>>>24)&255,(L>>>16)&255,(L>>>8)&255,L&255,...body];
+  return new Blob([new Uint8Array(bytes)],{type:'audio/midi'});
+}
+
+/* ---- состояние: паттерн + все ручки ---- */
+function stateObj(){return {v:2,бпм:Math.round(bpm()),паттерн:pattern,банки:banks,
+                            цепь:document.getElementById('chainStr').value,цепь_вкл:chainOn,
+                            ручки:D,панорама:PAN,мьюты:muted,эхо_по_такту:echoSync,эффекты:FXON}}
+function applyState(o){
+  if(!o)return;
+  const pat=o.паттерн||o.pattern, kn=o.ручки||o.d, mu=o.мьюты||o.m;
+  if(pat){
+    // файлы старого формата хранили 0/1/2 — разворачиваем в велосити
+    const legacy=Object.values(pat).every(a=>!Array.isArray(a)||a.every(x=>x<=2));
+    [...voices,{id:'fx'}].forEach(v=>{
+      if(!Array.isArray(pat[v.id]))return;
+      pattern[v.id]=pat[v.id].slice(0,16).map(x=>legacy?LEGACY[x]||0:Math.max(0,Math.min(127,x|0)));
+    });
+  }
+  if(o.эффекты)Object.keys(FXON).forEach(k=>FXON[k]=o.эффекты[k]?1:0);
+  if(o.панорама)Object.keys(PAN).forEach(k=>{
+    if(typeof o.панорама[k]==='number')PAN[k]=Math.max(-1,Math.min(1,o.панорама[k]))});
+  if(o.банки)Object.keys(banks).forEach(b=>{
+    if(o.банки[b])Object.keys(banks[b]).forEach(k=>{
+      if(Array.isArray(o.банки[b][k]))banks[b][k]=o.банки[b][k].slice(0,16)});
+  });
+  if(o.цепь){const ci=document.getElementById('chainStr');if(ci)ci.value=o.цепь}
+  if(o.цепь_вкл!==undefined){chainOn=!!o.цепь_вкл;
+    const cb=document.getElementById('sw-chain');if(cb)cb.classList.toggle('on',chainOn)}
+  if(kn)Object.keys(D).forEach(k=>{if(typeof kn[k]==='number')D[k]=Math.min(1,Math.max(0,kn[k]))});
+  if(mu)Object.keys(mu).forEach(k=>muted[k]=!!mu[k]);
+  echoSync=!!(o.эхо_по_такту??o.es);
+  const sw=document.getElementById('sw-ediv'); if(sw)sw.classList.toggle('on',echoSync);
+  paintSeq();cacheCells();typeInk(seqBox);
+  if(dApi)Object.values(dApi).forEach(k=>k.render());
+  if(typeof paintFxSw==='function')paintFxSw();
+  if(kit)applyDrums();
+}
+document.getElementById('dmidi').onclick=function(){
+  saveBlob(midiBlob(),'cherny-shum-'+Math.round(bpm())+'bpm.mid');flash(this,'ГОТОВО ✓');
+};
+document.getElementById('dpat').onclick=function(){
+  saveBlob(new Blob([JSON.stringify(stateObj(),null,1)],{type:'application/json'}),
+           'чёрный-шум-паттерн.json');
+  flash(this,'ГОТОВО ✓');
+};
+document.getElementById('dload').onclick=()=>document.getElementById('dfile').click();
+document.getElementById('dfile').onchange=function(e){
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{applyState(JSON.parse(r.result));flash(document.getElementById('dload'),'ЗАГРУЖЕНО ✓')}
+               catch(err){flash(document.getElementById('dload'),'НЕ ФАЙЛ')}};
+  r.readAsText(f); e.target.value='';
+};
+document.getElementById('dlink').onclick=function(){
+  const b64=btoa(unescape(encodeURIComponent(JSON.stringify(stateObj()))));
+  location.hash=b64;
+  const url=location.href;
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(url).then(()=>flash(this,'СКОПИРОВАНО ✓'),()=>flash(this,'В АДРЕСЕ ↑'));
+  else flash(this,'В АДРЕСЕ ↑');
+};
+document.getElementById('sw-ediv').onclick=function(){
+  echoSync=!echoSync;this.classList.toggle('on',echoSync);
+  if(dApi&&dApi.etime)dApi.etime.render();
+  initDrums();applyDrums();
+};
+
+document.getElementById('dsave').onclick=async function(){
+  const b=this,old=b.textContent;
+  b.textContent='РЕНДЕР…';b.disabled=true;
+  try{
+    const buf=await renderWav();
+    saveBlob(encodeWav(buf),'cherny-shum-'+Math.round(bpm())+'bpm.wav');
+    b.textContent='ГОТОВО ✓';
+  }catch(e){console.error(e);b.textContent='ОШИБКА';}
+  setTimeout(()=>{b.textContent=old;b.disabled=false},1600);
+};
+
+/* ---- lookahead scheduler ---- */
+function scheduleStep(s,t){
+  const st=60/bpm()/4;
+  voices.forEach(v=>{const arr=pattern[v.id];const val=arr?arr[s]:0;
+    if(val)trigger(v.id,t+(Math.random()-.5)*st*.16*D.stretch,val)});
+  if(pattern.fx&&pattern.fx[s]&&!muted.fx){initDrums();fxFire(kit,ac,t)}
+  drawQ.push({s,t});
+}
+function advance(){
+  const st=60/bpm()/4;
+  stepN=(stepN+1)%16;
+  if(stepN===0&&chainOn){            // такт кончился — берём следующий банк из цепи
+    const ch=chainList();
+    chainPos=(chainPos+1)%ch.length;
+    setBank(ch[chainPos]);markPlaying();
+  }
+  nextT+=st;
+}
+function tick(){
+  const st=60/bpm()/4;
+  while(nextT<ac.currentTime+.12){
+    const swingOff=(stepN%2)?st*D.swing*.55:0;
+    scheduleStep(stepN,nextT+swingOff);
+    advance();
+  }
+}
+function seqStart(){
+  initDrums();ac.resume();
+  seqOn=true;stepN=0;nextT=ac.currentTime+.06;
+  if(chainOn){chainPos=0;setBank(chainList()[0]);markPlaying()}
+  timer=setInterval(tick,25);
+  document.getElementById('dplay').classList.add('act');
+  lamp('lp-seq',true);
+}
+function seqStop(){
+  seqOn=false;clearInterval(timer);timer=null;drawQ.length=0;
+  document.getElementById('dplay').classList.remove('act');
+  lamp('lp-seq',false);lamp('lp-beat',false);
+  document.querySelectorAll('#banks [data-b]').forEach(x=>x.classList.remove('play'));
+  document.querySelectorAll('.st.now').forEach(e=>e.classList.remove('now'));
+}
+document.getElementById('dplay').onclick=()=>seqOn?seqStop():seqStart();
+document.getElementById('dstop').onclick=seqStop;
+
+dApi=Object.assign(
+  buildKnobs(document.getElementById('dknobs'),dKnobsBase,D,()=>{initDrums();applyDrums()}),
+  buildKnobs(document.getElementById('fxknobs'),dKnobsFx, D,()=>{initDrums();applyDrums()}));
+
+/* шторка эффектов */
+document.getElementById('fxtoggle').onclick=function(){
+  const d=document.getElementById('fxdrawer');
+  d.classList.toggle('open');
+};
+
+/* ---- маленький индикатор уровня рядом с ручкой ШУМ ---- */
+function drawMiniVU(level){
+  if(!nvu)nvu=document.getElementById('nvu');
+  if(!nvu)return;
+  if(!gN){const r=nvu.getBoundingClientRect(),d=DPR();
+    nvu.width=Math.max(1,r.width*d);nvu.height=Math.max(1,r.height*d);gN=nvu.getContext('2d')}
+  const W=nvu.width,H=nvu.height,seg=14,gap=2,w=(W-gap*(seg-1))/seg;
+  gN.clearRect(0,0,W,H);
+  const lit=Math.round(Math.min(1,level)*seg);
+  nvuPeak=Math.max(nvuPeak*.94,lit);
+  for(let i=0;i<seg;i++){
+    const on=i<lit, pk=Math.round(nvuPeak)===i+1;
+    gN.fillStyle=on?'rgba(20,19,18,.92)':'rgba(20,19,18,.16)';
+    if(pk&&!on)gN.fillStyle='rgba(20,19,18,.55)';
+    const h=H*(.42+.58*(i/seg));
+    gN.fillRect(i*(w+gap),H-h,w,h);
+  }
+}
+
+/* ---- машинописный набор: каждая литера бьётся по бумаге отдельно ----
+   базовая линия пляшет, наклон гуляет, краска ложится неровно             */
+function typeInk(root){
+  (root||document).querySelectorAll('.hero h1,.hero .sub,h2,.mhead .plate,.tracks .t,.vname,.counter small,.vu .cap')
+    .forEach(el=>{
+      if(el.__inked)return; el.__inked=1;
+      const txt=el.textContent;
+      el.textContent='';
+      for(const chr of txt){
+        if(chr===' '){el.appendChild(document.createTextNode(' '));continue}
+        const sp=document.createElement('span');
+        sp.className='ink'+(Math.random()<.13?' faint':'')+(Math.random()<.16?' heavy':'');
+        sp.textContent=chr;
+        const dy=(Math.random()*1.9-.95).toFixed(2),
+              dx=(Math.random()*.9-.45).toFixed(2),
+              rot=(Math.random()*2.4-1.2).toFixed(2);
+        sp.style.transform=`translate(${dx}px,${dy}px) rotate(${rot}deg)`;
+        el.appendChild(sp);
+      }
+    });
+}
+typeInk();
+
+/* ---- панорама: тянешь маркер по строке ---- */
+seqBox.addEventListener('pointerdown',e=>{
+  const el=e.target.closest('.pan'); if(!el)return;
+  const id=el.dataset.pan, mark=el.querySelector('b');
+  const set=ev=>{
+    const r=el.getBoundingClientRect();
+    let v=((ev.clientX-r.left)/r.width-.5)*2;
+    v=Math.max(-1,Math.min(1,v));
+    if(Math.abs(v)<.06)v=0;                       // щелчок в центре
+    PAN[id]=v;mark.style.left=(50+v*48).toFixed(1)+'%';
+    el.classList.toggle('mid',Math.abs(v)<.02);
+    el.title='панорама '+(v===0?'центр':(v<0?'Л':'П')+Math.round(Math.abs(v)*100));
+    initDrums();applyDrums();
+  };
+  set(e);el.setPointerCapture(e.pointerId);
+  const mv=ev=>set(ev), up=()=>{el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up)};
+  el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);
+});
+seqBox.addEventListener('dblclick',e=>{
+  const el=e.target.closest('.pan'); if(!el)return;
+  PAN[el.dataset.pan]=0;el.querySelector('b').style.left='50%';el.classList.add('mid');
+  initDrums();applyDrums();
+});
+
+/* ---- раскладка: по физическим клавишам, чтобы работало и в русской ----
+   A S D F G H — голоса, J — дорожка эффектов, Shift — акцент          */
+let keyRec=false;
+document.getElementById('dkeyrec').onclick=function(){
+  keyRec=!keyRec;this.classList.toggle('act',keyRec);
+  flash(this,keyRec?'ПИШУ В ПАТТЕРН':'ТОЛЬКО ЗВУК');
+};
+function nearestStep(){                       // куда положить удар при записи
+  if(!seqOn)return headStep<0?0:headStep;
+  const st=60/bpm()/4;
+  const ahead=(nextT-ac.currentTime)/st;      // сколько осталось до следующего шага
+  let i=stepN-Math.round(ahead);
+  return ((i%16)+16)%16;
+}
+addEventListener('keydown',e=>{
+  if(e.repeat||e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+  const id=KEYMAP[e.code]; if(!id)return;
+  e.preventDefault();
+  initDrums();ac.resume();
+  const vel=id==='fx'?127:(e.shiftKey?120:100);
+  if(id==='fx')fxFire(kit,ac,ac.currentTime+.01);
+  else trigger(id,ac.currentTime,vel);
+  const btn=seqBox.querySelector(`.vname[data-aud="${id}"]`);
+  if(btn){btn.classList.add('hit');setTimeout(()=>btn.classList.remove('hit'),110)}
+  if(keyRec){
+    const i=nearestStep();
+    if(!Array.isArray(pattern[id]))pattern[id]=Array(16).fill(0);
+    pattern[id][i]=vel;
+    const cell=(stepCells[i]||[]).find(c=>c.dataset.v===id);
+    if(cell)paintStep(cell,vel);
+  }
+});
+
+/* ---- свой сэмпл: кнопкой или броском файла на панель ---- */
+async function loadSampleFile(f,btn){
+  if(!f)return;
+  try{
+    initAudio();
+    micBuf=await ac.decodeAudioData(await f.arrayBuffer());
+    const row=document.querySelector('.srow[data-v="mic"]');
+    if(row){row.classList.remove('empty');
+      const nb=row.querySelector('.vname');if(nb)nb.title=f.name;}
+    if(btn)flash(btn,'СЕМПЛ ЕСТЬ ✓');
+  }catch(err){if(btn)flash(btn,'НЕ ЗВУК')}
+}
+document.getElementById('dsmp').onclick=()=>document.getElementById('dsmpfile').click();
+document.getElementById('dsmpfile').onchange=function(e){
+  loadSampleFile(e.target.files[0],document.getElementById('dsmp'));e.target.value='';
+};
+const dropBox=document.getElementById('drumbox');
+['dragenter','dragover'].forEach(ev=>dropBox.addEventListener(ev,e=>{
+  if(![...e.dataTransfer.types].includes('Files'))return;
+  e.preventDefault();dropBox.classList.add('drop');
+}));
+['dragleave','dragend'].forEach(ev=>dropBox.addEventListener(ev,e=>{
+  if(e.target===dropBox)dropBox.classList.remove('drop');
+}));
+dropBox.addEventListener('drop',e=>{
+  e.preventDefault();dropBox.classList.remove('drop');
+  loadSampleFile(e.dataTransfer.files[0],document.getElementById('dsmp'));
+});
+
+/* ---- банки и цепочка: из петли собирается песня ---- */
+function cacheCells(){
+  stepCells=Array.from({length:16},(_,i)=>[...seqBox.querySelectorAll(`.st[data-i="${i}"]`)]);
+}
+function refreshSteps(){          // быстрое обновление без пересборки DOM
+  seqBox.querySelectorAll('.st').forEach(st=>{
+    const arr=pattern[st.dataset.v]; const v=arr?arr[+st.dataset.i]:0;
+    st.classList.toggle('on',v>0);st.classList.toggle('acc',v>=ACC);
+    st.style.setProperty('--v',(v/127).toFixed(3));st.title=v||'';
+  });
+}
+function setBank(b,silent){
+  curBank=b;pattern=banks[b];
+  document.querySelectorAll('#banks [data-b]').forEach(x=>x.classList.toggle('act',x.dataset.b===b));
+  refreshSteps();
+}
+document.getElementById('banks').addEventListener('click',e=>{
+  const b=e.target.closest('[data-b]'); if(!b)return;
+  setBank(b.dataset.b);
+});
+document.getElementById('sw-chain').onclick=function(){
+  chainOn=!chainOn;this.classList.toggle('on',chainOn);chainPos=0;
+  if(chainOn)setBank(chainList()[0]);
+};
+function markPlaying(){
+  document.querySelectorAll('#banks [data-b]').forEach(x=>
+    x.classList.toggle('play',chainOn&&x.dataset.b===chainList()[chainPos%chainList().length]));
+}
+
+/* ---- тумблеры обхода: любой блок можно выключить из тракта ---- */
+const FXNAMES={tone:'ТЕМБР',crush:'БИТКРАШ',smash:'РАСПЛЮЩ',verb:'РЕВЕРБ',echo:'ЭХО'};
+const FXKNOB={tone:['tone'],crush:['crush'],smash:['smash'],verb:['verb'],echo:['echo','etime','ecrush']};
+const fxswBox=document.getElementById('fxsw');
+function paintFxSw(){
+  fxswBox.innerHTML=Object.keys(FXNAMES)
+    .map(k=>`<button data-fx="${k}" class="${FXON[k]?'on':''}">${FXON[k]?'●':'○'} ${FXNAMES[k]}</button>`).join('');
+  Object.keys(FXKNOB).forEach(k=>FXKNOB[k].forEach(n=>{
+    const el=document.querySelector(`#fxknobs .knob[data-k="${n}"]`);
+    if(el)el.classList.toggle('off',!FXON[k]);
+  }));
+}
+fxswBox.addEventListener('click',e=>{
+  const b=e.target.closest('[data-fx]'); if(!b)return;
+  const k=b.dataset.fx; FXON[k]=FXON[k]?0:1;
+  initDrums();applyDrums();paintFxSw();
+});
+
+/* ---- рандомизатор эффектов: разбрасывает только тракт, ритм не трогает ---- */
+document.getElementById('dfxrand').onclick=function(){
+  const R=(lo,hi)=>lo+Math.random()*(hi-lo);
+  D.tone   = R(.25,.9);
+  D.crush  = Math.random()<.35?R(0,.2):R(.3,.85);
+  D.smash  = R(.1,.8);
+  D.verb   = Math.random()<.3?R(0,.15):R(.25,.8);
+  D.echo   = Math.random()<.3?R(0,.1):R(.2,.7);
+  D.etime  = R(0,1);
+  D.ecrush = Math.random()<.4?0:R(.2,.9);
+  D.stretch= Math.random()<.45?0:R(.05,.45);
+  voices.forEach(v=>PAN[v.id]=v.id==='kick'?R(-.12,.12):     // бочку держим в центре
+                              (Math.random()<.3?0:R(-.75,.75)));
+  paintSeq();cacheCells();typeInk(seqBox);
+  if(dApi)Object.values(dApi).forEach(k=>k.render());
+  initDrums();applyDrums();paintFxSw();
+  flash(this,'РАЗБРОСАНО ✓');
+};
+document.getElementById('dmic').onclick=function(){recordMic(this)};
+paintFxSw();
+document.getElementById('crushTxt').textContent=(16-Math.round(D.crush*14))+' БИТ';
+
+/* ================= ОБЛОЖКА ИЗ ПАТТЕРНА =================
+   каждый удар оставляет пятно: позиция — от шага и голоса,
+   плотность — от велосити, поворот — от банка                */
+let figFromBeat=true;
+/* параметры фигуры: либо из ритма, либо жребием */
+function figureParams(){
+  const R=[[1,2],[2,3],[3,4],[3,5],[4,5],[5,6],[5,7],[7,8],[4,7],[2,5],[8,9],[5,9]];
+  if(!figFromBeat){
+    const [a,b]=R[Math.floor(Math.random()*R.length)];
+    return {a,b,phi:Math.random()*Math.PI,ecc:.78+Math.random()*.44,tilt:(Math.random()-.5)*.5};
+  }
+  const cnt=id=>(pattern[id]||[]).filter(x=>x>0).length;
+  const gcd=(x,y)=>y?gcd(y,x%y):x;
+  let a=Math.max(1,cnt('kick')), b=Math.max(1,cnt('hat')||cnt('snare')||2);
+  const g0=gcd(a,b); a=Math.max(1,Math.min(9,a/g0|0)); b=Math.max(1,Math.min(9,b/g0|0));
+  if(a===b)b=a%9+1;                                   // одинаковые дают скучный овал
+  const vel=[...(pattern.kick||[]),...(pattern.snare||[])].filter(x=>x>0);
+  const avg=vel.length?vel.reduce((x,y)=>x+y,0)/vel.length/127:.6;
+  return {a,b,phi:Math.PI*(D.swing*.9+cnt('rim')/32),ecc:.7+avg*.6,tilt:(D.stretch-.2)*.6};
+}
+/* один и тот же рисунок в любой холст — превью и печать в разных форматах */
+function renderCover(g,W,H){
+  const S=Math.min(W,H), rows=[...voices,FXROW];
+  g.clearRect(0,0,W,H);
+  g.fillStyle='#ddd9d3';g.fillRect(0,0,W,H);
+  rows.forEach((v,ri)=>{
+    const arr=pattern[v.id]; if(!arr)return;
+    arr.forEach((val,i)=>{
+      if(!val)return;
+      const a=val/127;
+      const x=W*.10+(i/15)*W*.80+(Math.random()-.5)*W*.034;
+      const y=H*.16+(ri/(rows.length-1))*H*.62+(Math.random()-.5)*H*.034;
+      const r=S*(.024+a*.092);
+      const gr=g.createRadialGradient(x,y,0,x,y,r);
+      gr.addColorStop(0,`rgba(28,26,24,${(a*.55).toFixed(3)})`);
+      gr.addColorStop(.55,`rgba(28,26,24,${(a*.22).toFixed(3)})`);
+      gr.addColorStop(1,'rgba(28,26,24,0)');
+      g.fillStyle=gr;g.save();g.translate(x,y);g.rotate(Math.random()*3);
+      g.beginPath();g.ellipse(0,0,r,r*(.5+Math.random()*.5),0,0,7);g.fill();g.restore();
+    });
+  });
+  // ---- фигура Лиссажу по центру ----
+  const F=figureParams(), cx=W/2, cy=H*.5, R=S*(.20+.10*((F.a+F.b)%3)/2), N=2600;
+  const lissa=(off,alpha,w)=>{
+    g.strokeStyle=`rgba(20,19,18,${alpha})`;g.lineWidth=w*S/760;g.lineJoin='round';
+    g.save();g.translate(cx+off[0]*S/760,cy+off[1]*S/760);g.rotate(F.tilt);
+    g.beginPath();
+    let pen=true;
+    for(let i=0;i<=N;i++){
+      const t=i/N*Math.PI*2;
+      const jx=(Math.random()-.5)*1.4*S/760, jy=(Math.random()-.5)*1.4*S/760;
+      const x=Math.sin(F.a*t+F.phi)*R+jx, y=Math.sin(F.b*t)*R*F.ecc+jy;
+      if(Math.random()<.004)pen=false;                // краска выпадает
+      if(!pen){g.stroke();g.beginPath();g.moveTo(x,y);pen=true;continue}
+      i?g.lineTo(x,y):g.moveTo(x,y);
+    }
+    g.stroke();g.restore();
+  };
+  lissa([3,-2],.20,3.4);lissa([-2,1],.26,2.6);lissa([0,0],.82,1.9);
+  // ---- зерно, плотность по площади ----
+  const dots=Math.min(260000,Math.round(W*H*.045));
+  for(let i=0;i<dots;i++){
+    g.fillStyle=`rgba(20,19,18,${(Math.random()*Math.random()*.4).toFixed(3)})`;
+    g.fillRect(Math.random()*W,Math.random()*H,1,1);
+  }
+  // ---- машинописная шапка ----
+  g.textBaseline='top';
+  const put=(txt,x,y,size,alpha)=>{
+    g.font=`700 ${size*S/760}px Cousine, "Courier New", monospace`;
+    g.fillStyle=`rgba(20,19,18,${alpha})`;
+    let cxx=x;
+    for(const ch of txt){
+      g.save();g.translate(cxx,y+(Math.random()*3-1.5));g.rotate((Math.random()*2-1)*.012);
+      g.fillText(ch,0,0);g.restore();
+      cxx+=g.measureText(ch).width;
+    }
+  };
+  put('ЧЁРНЫЙ ШУМ',W*.08,H*.06,52,.85);
+  put('ЧЁРНЫЙ ШУМ',W*.08-3,H*.06+1,52,.30);
+  put('.'+(chainOn?chainList().join(' '):'БАНК '+curBank)+'.',W*.08,H*.06+S*.07,26,.7);
+  put(Math.round(bpm())+' УД/МИН · '+(16-Math.round(D.crush*14))+' БИТ',W*.08,H*.90,20,.6);
+  put('ФИГУРА '+F.a+':'+F.b+' · ФАЗА '+(F.phi/Math.PI).toFixed(2)+'π',W*.08,H*.94,18,.45);
+}
+function drawCover(){
+  const c=document.getElementById('coverC');
+  renderCover(c.getContext('2d'),c.width,c.height);
+}
+document.getElementById('covermake').onclick=function(){drawCover();flash(this,'СОБРАНО ✓')};
+document.getElementById('coversave').onclick=function(){
+  const [w,h]=document.getElementById('coverfmt').value.split('x').map(Number);
+  flash(this,'ПЕЧАТЬ…');
+  setTimeout(()=>{                                   // даём кадру отрисоваться
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    renderCover(c.getContext('2d'),w,h);
+    c.toBlob(b=>{saveBlob(b,`cherny-shum-${w}x${h}.png`);flash(this,'ГОТОВО ✓')});
+  },30);
+};
+document.getElementById('sw-fig').onclick=function(){
+  figFromBeat=!figFromBeat;this.classList.toggle('on',figFromBeat);drawCover();
+};
+/* 26 тысяч точек зерна — считаем не на старте, а когда блок доедет до экрана */
+new IntersectionObserver((es,o)=>{
+  if(es[0].isIntersecting){drawCover();o.disconnect()}
+},{threshold:.05}).observe(document.getElementById('coverC'));
+
+/* ================= АВТООТВЕТЧИК =================
+   сообщение печатается по букве, под ним крутится плёнка:
+   гул мотора, шипение и обрывки речи                       */
+const ANSTEXT='ЭТО НЕ АВТООТВЕТЧИК. ЭТО ПЛЁНКА, КОТОРУЮ МЫ ЗАБЫЛИ СТЕРЕТЬ. '+
+  'ЕСЛИ ВЫ СЛЫШИТЕ ЭТО — ЗНАЧИТ, ЗАПИСЬ ПРОДОЛЖАЕТСЯ. ОСТАВЬТЕ ШУМ ПОСЛЕ СИГНАЛА.';
+let ansOn=false,ansNodes=[],ansTimer=null,ansBus=null,ansCarrier=null;
+
+/* тракт рации: перегруз, узкая полоса 400—2600 Гц, подмешанная несущая */
+function ansChain(){
+  if(ansBus)return ansBus;
+  const drive=ac.createWaveShaper();
+  const n=1024,cv=new Float32Array(n);
+  for(let k=0;k<n;k++){const x=k*2/n-1;cv[k]=Math.tanh(x*7)*.85;}   // жёсткий клип рации
+  drive.curve=cv;drive.oversample='4x';
+  const hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=380;hp.Q.value=.8;
+  const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1250;bp.Q.value=.85;
+  const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2600;lp.Q.value=1.4;
+  const peak=ac.createBiquadFilter();peak.type='peaking';                 // «жестяной» горб
+  peak.frequency.value=1800;peak.Q.value=1.6;peak.gain.value=9;
+  const out=ac.createGain();out.gain.value=.5;
+  ansBus=ac.createGain();
+  ansBus.connect(drive).connect(hp).connect(bp).connect(lp).connect(peak).connect(out).connect(limiter);
+  // несущая: медленная амплитудная модуляция, будто сигнал плывёт
+  ansCarrier=ac.createOscillator();ansCarrier.frequency.value=.7;
+  const cg=ac.createGain();cg.gain.value=.22;
+  ansCarrier.connect(cg).connect(out.gain);ansCarrier.start();
+  ansNodes.push(drive,hp,bp,lp,peak,out,ansCarrier,cg);
+  return ansBus;
+}
+/* один слог: гортанный гул на 110 Гц (октава ниже обычной речи)
+   через три форманты — получается не слово, а его тень в эфире */
+const VOWELS={'А':[700,1150,2600],'О':[500,900,2500],'У':[330,700,2400],'Ы':[330,1600,2400],
+              'Э':[600,1750,2500],'И':[280,2100,2900],'Е':[550,1800,2600],'Я':[750,1400,2600],
+              'Ю':[350,900,2400],'Ё':[520,1000,2500]};
+function ansSyl(ch){
+  if(!ansOn)return;
+  const t=ac.currentTime+.01, bus=ansChain();
+  const F=VOWELS[ch]||[500,1200,2500];
+  const f0=110*(1+(Math.random()-.5)*.06);         // 110 Гц, лёгкий уход строя
+  const src=ac.createOscillator();src.type='sawtooth';
+  src.frequency.setValueAtTime(f0*1.06,t);
+  src.frequency.linearRampToValueAtTime(f0,t+.14);
+  const dur=.10+Math.random()*.09;
+  const amp=ac.createGain();
+  amp.gain.setValueAtTime(0,t);
+  amp.gain.linearRampToValueAtTime(.5,t+.02);
+  amp.gain.setValueAtTime(.45,t+dur*.6);
+  amp.gain.exponentialRampToValueAtTime(.001,t+dur);
+  src.connect(amp);
+  F.forEach((f,k)=>{
+    const bq=ac.createBiquadFilter();bq.type='bandpass';
+    bq.frequency.value=f*(1+(Math.random()-.5)*.05);bq.Q.value=7-k*1.6;
+    const g=ac.createGain();g.gain.value=[.9,.55,.3][k];
+    amp.connect(bq).connect(g).connect(bus);
+  });
+  src.start(t);src.stop(t+dur+.05);
+}
+function ansConsonant(){
+  if(!ansOn)return;
+  const t=ac.currentTime+.01,bus=ansChain();
+  const L=Math.floor(.05*ac.sampleRate),b=ac.createBuffer(1,L,ac.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<L;i++)d[i]=(Math.random()*2-1);
+  const src=ac.createBufferSource();src.buffer=b;
+  const bq=ac.createBiquadFilter();bq.type='bandpass';bq.frequency.value=1400+Math.random()*1200;bq.Q.value=2;
+  const g=ac.createGain();
+  g.gain.setValueAtTime(.16,t);g.gain.exponentialRampToValueAtTime(.001,t+.045);
+  src.connect(bq).connect(g).connect(bus);src.start(t);
+}
+function ansStop(){
+  ansOn=false;clearInterval(ansTimer);
+  ansNodes.forEach(n=>{try{n.stop&&n.stop()}catch(e){}try{n.disconnect()}catch(e){}});
+  ansNodes=[];ansBus=null;ansCarrier=null;
+  document.getElementById('ans').classList.remove('play');
+  document.getElementById('ansplay').textContent='▶ ПРОСЛУШАТЬ';
+}
+function ansPlay(){
+  initAudio();ac.resume();
+  ansOn=true;
+  document.getElementById('ans').classList.add('play');
+  document.getElementById('ansplay').textContent='■ ОСТАНОВИТЬ';
+  const bus=ansChain();
+  // гул мотора и шипение ленты — мимо рации, они в комнате
+  const hum=ac.createOscillator();hum.type='sawtooth';hum.frequency.value=49.5;
+  const hf=ac.createBiquadFilter();hf.type='lowpass';hf.frequency.value=170;
+  const hg=ac.createGain();hg.gain.value=.05;
+  hum.connect(hf).connect(hg).connect(limiter);hum.start();
+  const L=2*ac.sampleRate,b=ac.createBuffer(1,L,ac.sampleRate),ch=b.getChannelData(0);
+  for(let i=0;i<L;i++)ch[i]=(Math.random()*2-1);
+  const nz=ac.createBufferSource();nz.buffer=b;nz.loop=true;
+  const nf=ac.createBiquadFilter();nf.type='bandpass';nf.frequency.value=2400;nf.Q.value=.6;
+  const ng=ac.createGain();ng.gain.value=.045;
+  nz.connect(nf).connect(ng).connect(limiter);nz.start();
+  // эфирный шум — уже внутри рации
+  const st=ac.createBufferSource();st.buffer=b;st.loop=true;
+  const sg=ac.createGain();sg.gain.value=.07;
+  st.connect(sg).connect(bus);st.start();
+  ansNodes.push(hum,hf,hg,nz,nf,ng,st,sg);
+  // текст печатается по букве, и каждая буква звучит
+  const box=document.getElementById('ansmsg');box.textContent='';
+  let i=0;
+  ansTimer=setInterval(()=>{
+    if(i>=ANSTEXT.length){clearInterval(ansTimer);setTimeout(()=>{if(ansOn)ansStop()},1400);return}
+    const ch=ANSTEXT[i];
+    box.textContent=ANSTEXT.slice(0,++i);
+    const cur=document.createElement('span');cur.className='cur';box.appendChild(cur);
+    if(VOWELS[ch])ansSyl(ch);
+    else if(/[А-ЯЁ]/.test(ch)&&Math.random()<.5)ansConsonant();
+  },62);
+}
+document.getElementById('ansplay').onclick=()=>ansOn?ansStop():ansPlay();
+
+/* ---- паттерн из ссылки, если он там есть ---- */
+if(location.hash.length>8){
+  try{applyState(JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1))))))}catch(e){}
+}
+
+/* ---- глобальная ручка ШУМ ---- */
+buildKnobs(document.getElementById('nknob'),
+  [{k:'noise',name:'ШУМ',def:0,detent:0,fmt:v=>Math.round(v*100)+'%'}],
+  N,()=>applyNoise());
+collectShake();applyNoise();
+
+/* отрисовка бегунка по шагам — по часам аудио */
+function paintHead(){
+  while(drawQ.length&&drawQ[0].t<ac.currentTime){
+    const {s}=drawQ.shift();
+    if(!stepCells.length)cacheCells();
+    if(headStep>=0)stepCells[headStep].forEach(e=>e.classList.remove('now'));
+    stepCells[s].forEach(e=>{
+      e.classList.add('now');
+      const arr=pattern[e.dataset.v];
+      if(arr&&arr[s]){e.classList.remove('fire');void e.offsetWidth;e.classList.add('fire')}
+    });
+    headStep=s;
+    lamp('lp-beat',s%4===0);
+  }
+}
+
+/* =========================================================
+   REVEAL
+   ========================================================= */
+const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in')),{threshold:.1});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+document.querySelectorAll('h2.op, .hero h1').forEach(h=>{
+  h.addEventListener('mouseenter',()=>{let n=0;const id=setInterval(()=>{
+    h.style.transform=`translate(${(Math.random()*6-3).toFixed(1)}px,${(Math.random()*3-1.5).toFixed(1)}px)`;
+    if(++n>7){clearInterval(id);h.style.transform='none'}},42);});
+});
+
+/* keyboard transport */
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.target.closest&&e.target.closest('.knob'))return;
+  if(e.code==='Space'){e.preventDefault();playing?halt():play(cur<0?0:cur)}
+  if(e.code==='ArrowRight')play(((cur<0?-1:cur)+1)%demos.length);
+  if(e.code==='ArrowLeft')play(((cur<0?1:cur)-1+demos.length)%demos.length);
+});
+</script>
+</body>
+</html>
